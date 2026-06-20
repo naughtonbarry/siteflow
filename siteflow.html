@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiteFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] }
+      }
+    }
+  }
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  [x-cloak]{display:none!important}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+  .kanban-col{min-height:340px}
+  .task-card{transition:box-shadow 0.15s ease,transform 0.1s ease}
+  .task-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08);transform:translateY(-1px)}
+  input,select,textarea{outline:none}
+  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(99,102,241,0.12)}
+</style>
+</head>
+<body class="bg-slate-50 font-sans antialiased" x-data="siteflow()" x-init="init()" x-cloak>
+
+<!-- Loading overlay -->
+<div x-show="loading" class="fixed inset-0 z-50 flex items-center justify-center" style="background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)">
+  <div class="text-center">
+    <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-2xl mb-4 animate-pulse">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div class="text-white font-semibold text-lg tracking-tight">SiteFlow</div>
+    <div class="text-slate-400 text-sm mt-1">Connecting to database…</div>
+  </div>
+</div>
+
+<!-- ==================== LOGIN ==================== -->
+<div x-show="!user" class="min-h-screen flex items-center justify-center p-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-2xl mb-4">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <h1 class="text-2xl font-semibold text-white tracking-tight">SiteFlow</h1>
+      <p class="text-slate-400 text-sm mt-1">Project Workflow Management</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Login -->
+      <div x-show="!showInvite" class="p-7">
+        <h2 class="text-base font-semibold text-slate-900 mb-5">Sign in to your account</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">Email</label>
+            <input x-model="loginEmail" type="email" placeholder="you@example.com"
+                   class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">Password</label>
+            <input x-model="loginPassword" type="password" placeholder="••••••••"
+                   @keydown.enter="login()"
+                   class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors">
+          </div>
+          <div x-show="loginError" class="flex items-center gap-2 text-rose-600 text-sm bg-rose-50 border border-rose-100 rounded-lg px-3.5 py-2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span x-text="loginError"></span>
+          </div>
+          <button @click="login()"
+                  class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-1">
+            Sign in
+          </button>
+        </div>
+        <div class="mt-5 pt-5 border-t border-slate-100">
+          <button @click="showInvite = true; reg = {code:'',name:'',email:'',password:''}; regError=''"
+                  class="w-full text-center text-indigo-600 text-sm hover:text-indigo-700 transition-colors">
+            Have an invite code? Create account →
+          </button>
+        </div>
+        <div class="mt-3 bg-slate-50 rounded-lg px-3.5 py-2.5 flex items-center gap-2.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="text-xs text-slate-400">Admin: <span class="text-slate-600 font-medium">admin@siteflow.ie</span> / <span class="text-slate-600 font-medium">admin123</span></span>
+        </div>
+        <div class="mt-2 text-center">
+          <button @click="resetAllData()" class="text-slate-300 text-xs hover:text-slate-400 transition-colors">Trouble signing in? Reset app data</button>
+        </div>
+      </div>
+
+      <!-- Register -->
+      <div x-show="showInvite" class="p-7">
+        <h2 class="text-base font-semibold text-slate-900 mb-1">Create your account</h2>
+        <p class="text-sm text-slate-400 mb-5">Enter your invite code to get started</p>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">Invite Code</label>
+            <input x-model="reg.code" type="text" placeholder="e.g. AB12CD"
+                   class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-mono uppercase tracking-widest text-slate-900 placeholder-slate-300 transition-colors">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">Full Name</label>
+            <input x-model="reg.name" type="text" placeholder="Your full name"
+                   class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">Email</label>
+            <input x-model="reg.email" type="email" placeholder="you@example.com"
+                   class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">Password</label>
+            <input x-model="reg.password" type="password" placeholder="Choose a password"
+                   class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-colors">
+          </div>
+          <div x-show="regError" class="flex items-center gap-2 text-rose-600 text-sm bg-rose-50 border border-rose-100 rounded-lg px-3.5 py-2.5">
+            <span x-text="regError"></span>
+          </div>
+          <button @click="registerWithInvite()"
+                  class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-1">
+            Create account
+          </button>
+        </div>
+        <div class="mt-4 text-center">
+          <button @click="showInvite = false" class="text-slate-400 text-sm hover:text-slate-600 transition-colors">← Back to sign in</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== APP ==================== -->
+<div x-show="user" class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-56 bg-slate-950 flex flex-col fixed h-full z-20 overflow-y-auto">
+    <!-- Brand -->
+    <div class="px-5 pt-6 pb-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        </div>
+        <span class="text-white font-semibold text-base tracking-tight">SiteFlow</span>
+      </div>
+    </div>
+
+    <!-- User pill -->
+    <div class="px-4 pb-4">
+      <div class="flex items-center gap-2.5 bg-slate-900 rounded-lg px-3 py-2">
+        <div class="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0"
+             x-text="user && user.name ? user.name[0].toUpperCase() : '?'"></div>
+        <div class="min-w-0">
+          <div class="text-slate-200 text-xs font-medium truncate" x-text="user && user.name"></div>
+          <div class="text-xs mt-0.5">
+            <span class="font-medium" :class="rolePillClass[user && user.role]" x-text="roleLabels[user && user.role]"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project selector -->
+    <div class="px-4 pb-4 border-b border-slate-800" x-show="accessibleProjects.length > 0">
+      <div class="text-slate-500 text-xs font-semibold uppercase tracking-widest mb-2">Project</div>
+      <select x-model="currentProjectId"
+              class="w-full bg-slate-900 text-slate-200 rounded-lg px-3 py-2 text-xs border border-slate-700 focus:border-indigo-500 transition-colors cursor-pointer">
+        <template x-for="p in accessibleProjects" :key="p.id">
+          <option :value="p.id" x-text="p.name"></option>
+        </template>
+      </select>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 px-3 pt-3 pb-4 space-y-0.5">
+      <template x-for="item in navItems" :key="item.tab">
+        <button @click="currentTab = item.tab"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left"
+                :class="currentTab === item.tab
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'">
+          <span class="w-4 text-center flex-shrink-0" x-html="item.icon"></span>
+          <span x-text="item.label"></span>
+        </button>
+      </template>
+    </nav>
+
+    <!-- Sign out -->
+    <div class="px-4 py-4 border-t border-slate-800">
+      <button @click="logout()"
+              class="w-full flex items-center gap-2 text-slate-500 hover:text-slate-300 text-sm transition-colors">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="ml-56 flex-1 flex flex-col min-h-screen">
+
+    <!-- Topbar -->
+    <header class="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div>
+        <div class="flex items-center gap-2 text-xs text-slate-400 mb-0.5">
+          <span>Projects</span>
+          <span>/</span>
+          <span class="text-slate-600 font-medium" x-text="currentProject ? currentProject.name : 'No project'"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-semibold text-slate-900 tracking-tight" x-text="tabTitle"></h1>
+          <span x-show="currentProject && currentProject.status"
+                class="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-100"
+                x-text="currentProject && currentProject.status"></span>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-sm text-slate-400 hidden md:block" x-text="today()"></div>
+        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-sm select-none"
+             x-text="user && user.name ? user.name[0].toUpperCase() : '?'"></div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 p-8">
+
+      <!-- ===== DASHBOARD ===== -->
+      <div x-show="currentTab === 'dashboard'">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-white rounded-xl border border-slate-100 p-5">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Total Tasks</div>
+            <div class="text-3xl font-semibold text-slate-900 tracking-tight" x-text="projectTasks.length"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-5">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">In Progress</div>
+            <div class="text-3xl font-semibold text-amber-500 tracking-tight" x-text="projectTasks.filter(t=>t.status==='in_progress').length"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-5">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Completed</div>
+            <div class="text-3xl font-semibold text-emerald-500 tracking-tight" x-text="projectTasks.filter(t=>t.status==='done').length"></div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-5">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">On Site Today</div>
+            <div class="text-3xl font-semibold text-indigo-600 tracking-tight" x-text="todayAccess.filter(a=>!a.checkOut).length"></div>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="bg-white rounded-xl border border-slate-100 p-5 mb-6" x-show="projectTasks.length > 0">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold text-slate-900">Overall Progress</div>
+            <div class="text-sm text-slate-500" x-text="projectTasks.filter(t=>t.status==='done').length + ' of ' + projectTasks.length + ' tasks complete'"></div>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2">
+            <div class="bg-indigo-600 h-2 rounded-full transition-all duration-700"
+                 :style="`width:${projectTasks.length ? Math.round(projectTasks.filter(t=>t.status==='done').length/projectTasks.length*100) : 0}%`"></div>
+          </div>
+          <div class="text-xs text-slate-400 mt-2 text-right font-medium"
+               x-text="(projectTasks.length ? Math.round(projectTasks.filter(t=>t.status==='done').length/projectTasks.length*100) : 0) + '%'"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <!-- Updates -->
+          <div class="bg-white rounded-xl border border-slate-100">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-50">
+              <h3 class="text-sm font-semibold text-slate-900">Latest Updates</h3>
+              <button @click="currentTab='updates'" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors">View all</button>
+            </div>
+            <div class="divide-y divide-slate-50">
+              <template x-for="a in visibleAnnouncements.slice(0,3)" :key="a.id">
+                <div class="px-5 py-3.5">
+                  <div class="font-medium text-slate-800 text-sm leading-snug" x-text="a.title"></div>
+                  <div class="text-slate-400 text-xs mt-1 leading-relaxed" x-text="a.content.substring(0,95) + (a.content.length > 95 ? '…' : '')"></div>
+                  <div class="text-slate-300 text-xs mt-1.5" x-text="formatDate(a.createdAt)"></div>
+                </div>
+              </template>
+              <div x-show="visibleAnnouncements.length===0" class="px-5 py-8 text-center text-slate-400 text-sm">No updates yet</div>
+            </div>
+          </div>
+
+          <!-- My Tasks -->
+          <div class="bg-white rounded-xl border border-slate-100">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-50">
+              <h3 class="text-sm font-semibold text-slate-900">My Tasks</h3>
+              <button @click="currentTab='tasks'" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors">View board</button>
+            </div>
+            <div class="divide-y divide-slate-50">
+              <template x-for="t in myTasks.slice(0,6)" :key="t.id">
+                <div class="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-slate-50 transition-colors" @click="viewTask(t)">
+                  <div class="w-2 h-2 rounded-full flex-shrink-0"
+                       :class="t.status==='in_progress' ? 'bg-amber-400' : 'bg-slate-200'"></div>
+                  <span class="text-sm text-slate-700 flex-1 truncate" x-text="t.title"></span>
+                  <span class="text-xs flex-shrink-0 font-medium"
+                        :class="isOverdue(t.dueDate) ? 'text-rose-500' : 'text-slate-300'"
+                        x-text="t.dueDate || ''"></span>
+                </div>
+              </template>
+              <div x-show="myTasks.length===0" class="px-5 py-8 text-center text-slate-400 text-sm">No open tasks assigned</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== TASK BOARD ===== -->
+      <div x-show="currentTab === 'tasks'">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="text-sm text-slate-500"><span class="font-medium text-slate-900" x-text="visibleTasks.length"></span> tasks</div>
+          </div>
+          <button x-show="canEditTasks" @click="openNewTask()"
+                  class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add task
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- To Do -->
+          <div class="kanban-col">
+            <div class="flex items-center gap-2 mb-3 px-1">
+              <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">To Do</span>
+              <span class="ml-auto text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-semibold" x-text="todoTasks.length"></span>
+            </div>
+            <div class="space-y-2.5">
+              <template x-for="task in todoTasks" :key="task.id">
+                <div class="task-card bg-white rounded-xl border border-slate-100 p-4 cursor-pointer" @click="viewTask(task)">
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="text-xs px-2 py-0.5 rounded-full font-semibold" :class="priorityBadge[task.priority||'medium']" x-text="task.priority||'medium'"></span>
+                    <span class="text-xs font-medium" :class="isOverdue(task.dueDate) ? 'text-rose-500' : 'text-slate-300'" x-text="task.dueDate||''"></span>
+                  </div>
+                  <div class="font-medium text-slate-800 text-sm leading-snug" x-text="task.title"></div>
+                  <div class="text-slate-400 text-xs mt-1.5 leading-relaxed line-clamp-2" x-text="task.description||''"></div>
+                  <div x-show="canEditTasks" class="mt-3 pt-3 border-t border-slate-50">
+                    <button @click.stop="updateTaskStatus(task.id,'in_progress')"
+                            class="text-xs text-amber-600 hover:text-amber-700 font-medium transition-colors">Start →</button>
+                  </div>
+                </div>
+              </template>
+              <div x-show="todoTasks.length===0" class="rounded-xl border-2 border-dashed border-slate-100 p-6 text-center text-slate-300 text-xs">No tasks here</div>
+            </div>
+          </div>
+
+          <!-- In Progress -->
+          <div class="kanban-col">
+            <div class="flex items-center gap-2 mb-3 px-1">
+              <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">In Progress</span>
+              <span class="ml-auto text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-semibold border border-amber-100" x-text="inProgressTasks.length"></span>
+            </div>
+            <div class="space-y-2.5">
+              <template x-for="task in inProgressTasks" :key="task.id">
+                <div class="task-card bg-white rounded-xl border border-amber-100 p-4 cursor-pointer" @click="viewTask(task)">
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="text-xs px-2 py-0.5 rounded-full font-semibold" :class="priorityBadge[task.priority||'medium']" x-text="task.priority||'medium'"></span>
+                    <span class="text-xs font-medium" :class="isOverdue(task.dueDate) ? 'text-rose-500' : 'text-slate-300'" x-text="task.dueDate||''"></span>
+                  </div>
+                  <div class="font-medium text-slate-800 text-sm leading-snug" x-text="task.title"></div>
+                  <div class="text-slate-400 text-xs mt-1.5 leading-relaxed line-clamp-2" x-text="task.description||''"></div>
+                  <div x-show="canEditTasks" class="mt-3 pt-3 border-t border-amber-50 flex items-center gap-3">
+                    <button @click.stop="updateTaskStatus(task.id,'todo')" class="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors">← Back</button>
+                    <button @click.stop="updateTaskStatus(task.id,'done')" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium transition-colors">✓ Mark done</button>
+                  </div>
+                </div>
+              </template>
+              <div x-show="inProgressTasks.length===0" class="rounded-xl border-2 border-dashed border-amber-50 p-6 text-center text-slate-300 text-xs">Nothing in progress</div>
+            </div>
+          </div>
+
+          <!-- Done -->
+          <div class="kanban-col">
+            <div class="flex items-center gap-2 mb-3 px-1">
+              <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Done</span>
+              <span class="ml-auto text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-semibold border border-emerald-100" x-text="doneTasks.length"></span>
+            </div>
+            <div class="space-y-2.5">
+              <template x-for="task in doneTasks" :key="task.id">
+                <div class="task-card bg-slate-50 rounded-xl border border-slate-100 p-4 cursor-pointer opacity-75 hover:opacity-100" @click="viewTask(task)">
+                  <div class="font-medium text-slate-400 text-sm line-through" x-text="task.title"></div>
+                  <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-emerald-600 font-medium">✓ Complete</span>
+                    <span class="text-xs text-slate-300" x-text="task.dueDate||''"></span>
+                  </div>
+                  <div x-show="canEditTasks" class="mt-3 pt-3 border-t border-slate-100">
+                    <button @click.stop="updateTaskStatus(task.id,'in_progress')" class="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors">↩ Reopen</button>
+                  </div>
+                </div>
+              </template>
+              <div x-show="doneTasks.length===0" class="rounded-xl border-2 border-dashed border-emerald-50 p-6 text-center text-slate-300 text-xs">No completed tasks</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ACCESS REGISTER ===== -->
+      <div x-show="currentTab === 'access'">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-3 py-1 text-xs font-semibold">
+              <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+              <span x-text="todayAccess.filter(a=>!a.checkOut).length + ' on site now'"></span>
+            </div>
+          </div>
+          <button @click="openAccessForm()"
+                  class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Sign in to site
+          </button>
+        </div>
+
+        <!-- Today -->
+        <div class="bg-white rounded-xl border border-slate-100 mb-5">
+          <div class="px-6 py-4 border-b border-slate-50 flex items-center gap-3">
+            <h3 class="text-sm font-semibold text-slate-900">On Site Today</h3>
+            <span class="text-xs text-slate-400" x-text="today()"></span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-50">
+                  <th class="text-left px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Name</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Company</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Role</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Purpose</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">In</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Out</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Induction</th>
+                  <th class="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                <template x-for="e in todayAccess" :key="e.id">
+                  <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-3.5 font-medium text-slate-800 text-sm" x-text="e.name"></td>
+                    <td class="px-4 py-3.5 text-slate-500 text-sm" x-text="e.company||'—'"></td>
+                    <td class="px-4 py-3.5 text-slate-600 text-sm" x-text="e.role"></td>
+                    <td class="px-4 py-3.5 text-slate-500 text-sm" x-text="e.purpose"></td>
+                    <td class="px-4 py-3.5 font-mono text-xs text-slate-600" x-text="e.checkIn"></td>
+                    <td class="px-4 py-3.5 font-mono text-xs font-semibold" :class="e.checkOut ? 'text-slate-500' : 'text-emerald-600'" x-text="e.checkOut||'On site'"></td>
+                    <td class="px-4 py-3.5">
+                      <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                            :class="e.induction ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'"
+                            x-text="e.induction ? '✓ Done' : '✗ Pending'"></span>
+                    </td>
+                    <td class="px-4 py-3.5">
+                      <button x-show="!e.checkOut" @click="signOut(e.id)"
+                              class="text-xs text-slate-500 hover:text-slate-700 font-medium border border-slate-200 hover:border-slate-300 rounded-lg px-3 py-1 transition-colors">Sign out</button>
+                    </td>
+                  </tr>
+                </template>
+                <tr x-show="todayAccess.length===0">
+                  <td colspan="8" class="px-6 py-12 text-center text-slate-400 text-sm">No site access recorded today</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Full log -->
+        <div class="bg-white rounded-xl border border-slate-100">
+          <div class="px-6 py-4 border-b border-slate-50">
+            <h3 class="text-sm font-semibold text-slate-900">Full Access Log</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-50">
+                  <th class="text-left px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Name</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Company</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Role</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Purpose</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">In</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Out</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Ind.</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                <template x-for="e in allAccess" :key="e.id">
+                  <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-3 text-xs text-slate-400 font-medium" x-text="e.date"></td>
+                    <td class="px-4 py-3 font-medium text-slate-800" x-text="e.name"></td>
+                    <td class="px-4 py-3 text-slate-500" x-text="e.company||'—'"></td>
+                    <td class="px-4 py-3 text-slate-600" x-text="e.role"></td>
+                    <td class="px-4 py-3 text-slate-500" x-text="e.purpose"></td>
+                    <td class="px-4 py-3 font-mono text-xs text-slate-600" x-text="e.checkIn"></td>
+                    <td class="px-4 py-3 font-mono text-xs text-slate-500" x-text="e.checkOut||'—'"></td>
+                    <td class="px-4 py-3">
+                      <span :class="e.induction ? 'text-emerald-600' : 'text-rose-500'" class="font-semibold text-xs" x-text="e.induction ? '✓' : '✗'"></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== UPDATES ===== -->
+      <div x-show="currentTab === 'updates'">
+        <div class="flex items-center justify-between mb-6">
+          <div class="text-sm text-slate-500"><span class="font-medium text-slate-900" x-text="visibleAnnouncements.length"></span> updates</div>
+          <button x-show="user && (user.role==='admin'||user.role==='team')"
+                  @click="openAnnouncementForm()"
+                  class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Post update
+          </button>
+        </div>
+        <div class="space-y-4 max-w-2xl">
+          <template x-for="a in visibleAnnouncements" :key="a.id">
+            <div class="bg-white rounded-xl border border-slate-100 p-6">
+              <div class="font-semibold text-slate-900 text-base leading-snug" x-text="a.title"></div>
+              <div class="text-slate-600 mt-2.5 text-sm leading-relaxed" x-text="a.content"></div>
+              <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-slate-50">
+                <span class="text-xs text-slate-400 font-medium" x-text="formatDate(a.createdAt)"></span>
+                <span class="text-slate-200">·</span>
+                <div class="flex flex-wrap gap-1.5">
+                  <template x-for="role in a.visibleTo" :key="role">
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 border border-slate-100 font-medium" x-text="roleLabels[role]||role"></span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div x-show="visibleAnnouncements.length===0" class="text-center py-16 text-slate-400 text-sm">No updates posted yet</div>
+        </div>
+      </div>
+
+      <!-- ===== ADMIN: PROJECTS ===== -->
+      <div x-show="currentTab === 'admin-projects'">
+        <div class="flex items-center justify-between mb-6">
+          <div class="text-sm text-slate-500"><span class="font-medium text-slate-900" x-text="projects.length"></span> projects</div>
+          <button @click="openNewProject()"
+                  class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New project
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <template x-for="p in projects" :key="p.id">
+            <div class="bg-white rounded-xl border border-slate-100 p-5 cursor-pointer hover:border-indigo-200 hover:shadow-sm transition-all" @click="selectProject(p.id)">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold text-slate-900 truncate leading-snug" x-text="p.name"></div>
+                  <div class="text-slate-400 text-sm mt-0.5" x-text="p.location"></div>
+                  <div class="text-slate-400 text-xs mt-2.5 leading-relaxed line-clamp-2" x-text="p.description"></div>
+                </div>
+                <span class="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold"
+                      :class="p.status==='active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : p.status==='completed' ? 'bg-slate-50 text-slate-500 border border-slate-100' : 'bg-amber-50 text-amber-700 border border-amber-100'"
+                      x-text="p.status"></span>
+              </div>
+              <div class="flex gap-5 mt-4 pt-3.5 border-t border-slate-50 text-xs text-slate-400">
+                <span>Start: <span class="text-slate-600 font-medium" x-text="p.startDate||'—'"></span></span>
+                <span>End: <span class="text-slate-600 font-medium" x-text="p.endDate||'—'"></span></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- ===== ADMIN: USERS ===== -->
+      <div x-show="currentTab === 'admin-users'">
+        <div class="flex items-center justify-between mb-6">
+          <div class="text-sm text-slate-500"><span class="font-medium text-slate-900" x-text="users.length"></span> users</div>
+          <button @click="openInviteForm()"
+                  class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Send invite
+          </button>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-100 mb-5">
+          <div class="px-6 py-4 border-b border-slate-50">
+            <h3 class="text-sm font-semibold text-slate-900">Active Users</h3>
+          </div>
+          <div class="divide-y divide-slate-50">
+            <template x-for="u in users" :key="u.id">
+              <div class="flex items-center justify-between px-6 py-4">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-sm select-none flex-shrink-0"
+                       x-text="u.name ? u.name[0].toUpperCase() : '?'"></div>
+                  <div>
+                    <div class="font-medium text-slate-800 text-sm" x-text="u.name"></div>
+                    <div class="text-slate-400 text-xs mt-0.5" x-text="u.email"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold border"
+                        :class="roleBadge[u.role]" x-text="roleLabels[u.role]"></span>
+                  <button x-show="u.role!=='admin'" @click="removeUser(u.id)"
+                          class="text-xs text-slate-300 hover:text-rose-500 transition-colors font-medium">Remove</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-100">
+          <div class="px-6 py-4 border-b border-slate-50">
+            <h3 class="text-sm font-semibold text-slate-900">Pending Invites</h3>
+          </div>
+          <div class="divide-y divide-slate-50">
+            <template x-for="inv in pendingInvites" :key="inv.id">
+              <div class="flex items-center justify-between px-6 py-4">
+                <div>
+                  <div class="font-medium text-slate-800 text-sm" x-text="inv.email"></div>
+                  <div class="text-slate-400 text-xs mt-0.5 flex items-center gap-1.5">
+                    Code: <span class="font-mono font-bold text-indigo-600 tracking-widest bg-indigo-50 px-1.5 py-0.5 rounded" x-text="inv.code"></span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold border" :class="roleBadge[inv.role]" x-text="roleLabels[inv.role]"></span>
+                  <button @click="revokeInvite(inv.id)" class="text-xs text-slate-300 hover:text-rose-500 transition-colors font-medium">Revoke</button>
+                </div>
+              </div>
+            </template>
+            <div x-show="pendingInvites.length===0" class="px-6 py-10 text-center text-slate-400 text-sm">No pending invites</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- Task -->
+<div x-show="showTaskModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)" @click.self="showTaskModal=false">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-900" x-text="taskModal.id ? 'Task details' : 'New task'"></h3>
+      <button @click="showTaskModal=false" class="text-slate-300 hover:text-slate-500 transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Title</label>
+        <input x-model="taskModal.title" type="text" :readonly="!canEditTasks"
+               class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300 transition-colors"
+               :class="!canEditTasks ? 'bg-slate-50' : ''">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Description</label>
+        <textarea x-model="taskModal.description" rows="3" :readonly="!canEditTasks"
+                  class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300 resize-none transition-colors"
+                  :class="!canEditTasks ? 'bg-slate-50' : ''"></textarea>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Priority</label>
+          <select x-model="taskModal.priority" :disabled="!canEditTasks"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 transition-colors">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Due Date</label>
+          <input x-model="taskModal.dueDate" type="date" :readonly="!canEditTasks"
+                 class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 transition-colors">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Assigned to</label>
+          <select x-model="taskModal.assignedRole" :disabled="!canEditTasks"
+                  class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 transition-colors">
+            <option value="team">Team</option>
+            <option value="contractor">Contractor</option>
+            <option value="driver">Driver</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-50">
+      <button @click="showTaskModal=false" class="text-sm text-slate-400 hover:text-slate-600 transition-colors px-4 py-2">Cancel</button>
+      <button x-show="canEditTasks" @click="saveTask()"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+              x-text="taskModal.id ? 'Save changes' : 'Create task'"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Access sign-in -->
+<div x-show="showAccessModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)" @click.self="showAccessModal=false">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-900">Site Sign In</h3>
+      <button @click="showAccessModal=false" class="text-slate-300 hover:text-slate-500 transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Full Name *</label>
+          <input x-model="accessModal.name" type="text" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 transition-colors">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Company</label>
+          <input x-model="accessModal.company" type="text" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 transition-colors">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Role / Trade *</label>
+        <input x-model="accessModal.role" type="text" placeholder="e.g. Electrician, IT Engineer, Driver"
+               class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300 transition-colors">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Purpose of Visit *</label>
+        <input x-model="accessModal.purpose" type="text" placeholder="e.g. Network cabling installation"
+               class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300 transition-colors">
+      </div>
+      <label class="flex items-start gap-3 cursor-pointer bg-amber-50 border border-amber-100 rounded-xl p-4">
+        <input x-model="accessModal.induction" type="checkbox" class="mt-0.5 w-4 h-4 accent-emerald-600 flex-shrink-0 rounded">
+        <span class="text-sm text-slate-700 leading-snug">I have completed the site safety induction and will comply with all site rules and HSE requirements.</span>
+      </label>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-50">
+      <button @click="showAccessModal=false" class="text-sm text-slate-400 hover:text-slate-600 transition-colors px-4 py-2">Cancel</button>
+      <button @click="saveAccess()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">Sign in to site</button>
+    </div>
+  </div>
+</div>
+
+<!-- Announcement -->
+<div x-show="showAnnouncementModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)" @click.self="showAnnouncementModal=false">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-900">Post Update</h3>
+      <button @click="showAnnouncementModal=false" class="text-slate-300 hover:text-slate-500 transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Title</label>
+        <input x-model="announcementModal.title" type="text" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 transition-colors">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Message</label>
+        <textarea x-model="announcementModal.content" rows="4" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 resize-none transition-colors"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Visible to</label>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="role in ['client','team','contractor','driver']" :key="role">
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 transition-colors select-none">
+              <input type="checkbox" :value="role" x-model="announcementModal.visibleTo" class="w-3.5 h-3.5 accent-indigo-600 rounded">
+              <span class="text-sm text-slate-700 font-medium" x-text="roleLabels[role]"></span>
+            </label>
+          </template>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-50">
+      <button @click="showAnnouncementModal=false" class="text-sm text-slate-400 hover:text-slate-600 transition-colors px-4 py-2">Cancel</button>
+      <button @click="saveAnnouncement()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">Post update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invite -->
+<div x-show="showInviteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)" @click.self="showInviteModal=false; inviteCreated=''">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-900">Send Invite</h3>
+      <button @click="showInviteModal=false; inviteCreated=''" class="text-slate-300 hover:text-slate-500 transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="p-6">
+      <div x-show="!inviteCreated" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+          <input x-model="inviteModal.email" type="email" placeholder="name@company.com"
+                 class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300 transition-colors">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Role</label>
+          <select x-model="inviteModal.role" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 transition-colors">
+            <option value="client">Client</option>
+            <option value="team">Team Member</option>
+            <option value="contractor">Contractor</option>
+            <option value="driver">Driver / Supplier</option>
+          </select>
+        </div>
+      </div>
+      <div x-show="inviteCreated" class="text-center">
+        <div class="text-sm text-slate-500 mb-4">Invite code created for <span class="font-medium text-slate-700" x-text="inviteModal.email"></span></div>
+        <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-4">
+          <div class="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-2">Invite Code</div>
+          <div class="font-mono text-3xl font-bold text-indigo-700 tracking-[0.25em]" x-text="inviteCreated"></div>
+        </div>
+        <button @click="sendInviteEmail()"
+                class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors mb-3">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+          Send invite email
+        </button>
+        <p class="text-xs text-slate-400 leading-relaxed">Opens your email client with the invite pre-written.</p>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-50">
+      <button @click="showInviteModal=false; inviteCreated=''" class="text-sm text-slate-400 hover:text-slate-600 transition-colors px-4 py-2" x-text="inviteCreated ? 'Done' : 'Cancel'"></button>
+      <button x-show="!inviteCreated" @click="createInvite()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">Generate code</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Project -->
+<div x-show="showProjectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)" @click.self="showProjectModal=false">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-900">New Project</h3>
+      <button @click="showProjectModal=false" class="text-slate-300 hover:text-slate-500 transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Project Name *</label>
+        <input x-model="projectModal.name" type="text" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 transition-colors">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Location / Site</label>
+        <input x-model="projectModal.location" type="text" placeholder="e.g. Freight Building, Dublin"
+               class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300 transition-colors">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Description</label>
+        <textarea x-model="projectModal.description" rows="3"
+                  class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 resize-none transition-colors"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Start Date</label>
+          <input x-model="projectModal.startDate" type="date" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 transition-colors">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">End Date</label>
+          <input x-model="projectModal.endDate" type="date" class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 transition-colors">
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-50">
+      <button @click="showProjectModal=false" class="text-sm text-slate-400 hover:text-slate-600 transition-colors px-4 py-2">Cancel</button>
+      <button @click="saveProject()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">Create project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== LOGIC ==================== -->
+<script>
+const SUPABASE_URL='https://jxziiznrgtzoroatauul.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4emlpem5yZ3R6b3JvYXRhdXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODkyNzgsImV4cCI6MjA5NzQ2NTI3OH0.fD1IKVG-fg9SIx29zp90DjtAJf3py7vq18eY9JfvnZ0';
+
+let _sb=null, _store=null;
+
+const _TABLE={users:'sf_users',projects:'sf_projects',tasks:'sf_tasks',accessLog:'sf_access_log',announcements:'sf_announcements',invites:'sf_invites'};
+
+// JS camelCase → DB snake_case
+const _TO_DB={
+  users:{projectIds:'project_ids',createdAt:'created_at'},
+  projects:{startDate:'start_date',endDate:'end_date',createdAt:'created_at'},
+  tasks:{projectId:'project_id',assignedRole:'assigned_role',dueDate:'due_date',createdAt:'created_at'},
+  accessLog:{projectId:'project_id',checkIn:'check_in',checkOut:'check_out',createdAt:'created_at'},
+  announcements:{projectId:'project_id',authorId:'author_id',visibleTo:'visible_to',createdAt:'created_at'},
+  invites:{projectId:'project_id',createdAt:'created_at'}
+};
+// DB snake_case → JS camelCase (reverse maps)
+const _FROM_DB=Object.fromEntries(Object.entries(_TO_DB).map(([k,m])=>[k,Object.fromEntries(Object.entries(m).map(([a,b])=>[b,a]))]));
+
+function _toRow(key,obj){const m=_TO_DB[key]||{};const r={};for(const[k,v]of Object.entries(obj))r[m[k]||k]=v;return r;}
+function _fromRow(key,row){const m=_FROM_DB[key]||{};const r={};for(const[k,v]of Object.entries(row))r[m[k]||k]=v;return r;}
+
+function _storeGet(k){return(_store&&_store[k])?_store[k]:[]}
+
+function _storeSet(k,data){
+  const prev=(_store&&_store[k])?[..._store[k]]:[];
+  if(_store)_store[k]=data;
+  if(_sb&&_TABLE[k]){
+    const table=_TABLE[k];
+    const deletedIds=[...new Set(prev.map(r=>r.id))].filter(id=>!data.find(r=>r.id===id));
+    (async()=>{
+      try{
+        for(const id of deletedIds){const{error}=await _sb.from(table).delete().eq('id',id);if(error)console.error('SB delete:',error.message);}
+        if(data.length>0){const{error}=await _sb.from(table).upsert(data.map(r=>_toRow(k,r)));if(error)console.error('SB upsert:',error.message);}
+      }catch(e){console.error('SB write:',e);}
+    })();
+  }
+  try{localStorage.setItem('sf_'+k,JSON.stringify(data))}catch(e){}
+}
+
+async function _storeInit(seed){
+  if(_store)return;
+  try{
+    const{createClient}=window.supabase;
+    _sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+    const entries=await Promise.all(Object.entries(_TABLE).map(async([key,table])=>{
+      const{data,error}=await _sb.from(table).select('*').order('created_at',{ascending:true});
+      if(error){console.warn('SB read:',table,error.message);return[key,[]];}
+      return[key,(data||[]).map(r=>_fromRow(key,r))];
+    }));
+    const sbData=Object.fromEntries(entries);
+    const hasData=Object.values(sbData).some(d=>d&&d.length>0);
+    if(hasData){
+      _store={};
+      for(const key of Object.keys(_TABLE))_store[key]=sbData[key]||[];
+    }else{
+      _store=JSON.parse(JSON.stringify(seed));
+      for(const[key,table]of Object.entries(_TABLE)){
+        if(seed[key]&&seed[key].length>0){
+          const{error}=await _sb.from(table).upsert(seed[key].map(r=>_toRow(key,r)));
+          if(error)console.error('SB seed:',table,error.message);
+        }
+      }
+    }
+  }catch(e){
+    console.error('Supabase init failed, using local seed:',e);
+    _store=JSON.parse(JSON.stringify(seed));
+  }
+}
+
+function siteflow(){
+  const SEED={
+    users:[{id:'admin-001',name:'Tim Garvey',email:'admin@siteflow.ie',role:'admin',password:'admin123',projectIds:['proj-001'],createdAt:'2026-06-01'}],
+    invites:[],
+    projects:[{id:'proj-001',name:'Mater Hospital Department Relocation',description:'Relocation of Radiology, Cardiology, and Outpatients departments from the Mater Hospital to a new open-plan office in the Freight Building.',location:'Freight Building, Open Plan Office',status:'active',startDate:'2026-06-01',endDate:'2026-09-30',createdAt:'2026-05-15'}],
+    tasks:[
+      {id:'task-001',projectId:'proj-001',title:'Site survey — Freight Building',description:'Complete measured survey of the freight building open-plan floor. Document ceiling heights, column positions, and service routes.',status:'done',assignedRole:'contractor',priority:'high',dueDate:'2026-06-05',createdAt:'2026-06-01'},
+      {id:'task-002',projectId:'proj-001',title:'Floor plan and layout sign-off',description:'Submit proposed open-plan layout for three departments to client for approval.',status:'done',assignedRole:'team',priority:'high',dueDate:'2026-06-10',createdAt:'2026-06-01'},
+      {id:'task-003',projectId:'proj-001',title:'IT infrastructure assessment',description:'Assess existing IT infrastructure in freight building. Document network points required per department.',status:'in_progress',assignedRole:'contractor',priority:'high',dueDate:'2026-06-25',createdAt:'2026-06-05'},
+      {id:'task-004',projectId:'proj-001',title:'Safety inductions — all contractors',description:'All contractors must complete site safety induction before work commences. Coordinate with site safety officer.',status:'in_progress',assignedRole:'contractor',priority:'high',dueDate:'2026-06-20',createdAt:'2026-06-05'},
+      {id:'task-005',projectId:'proj-001',title:'Staff communication plan',description:'Draft and distribute communication plan to all department staff re: move schedule, temporary arrangements, and key contacts.',status:'in_progress',assignedRole:'team',priority:'medium',dueDate:'2026-06-28',createdAt:'2026-06-10'},
+      {id:'task-006',projectId:'proj-001',title:'Network cabling — Freight Building',description:'Install Cat6A structured cabling throughout the open-plan office to suit the approved layout drawing.',status:'todo',assignedRole:'contractor',priority:'high',dueDate:'2026-07-10',createdAt:'2026-06-10'},
+      {id:'task-007',projectId:'proj-001',title:'Partitions and meeting room fit-out',description:'Supply and install demountable partitions for meeting rooms and focus areas per approved layout.',status:'todo',assignedRole:'contractor',priority:'high',dueDate:'2026-07-20',createdAt:'2026-06-10'},
+      {id:'task-008',projectId:'proj-001',title:'Furniture procurement and delivery',description:'Order and coordinate delivery of desks, chairs, storage units, and breakout furniture to Freight Building.',status:'todo',assignedRole:'driver',priority:'medium',dueDate:'2026-08-01',createdAt:'2026-06-15'},
+      {id:'task-009',projectId:'proj-001',title:'Phased move — Radiology',description:'Coordinate move of Radiology department. Pack Friday, install Saturday, operational Monday.',status:'todo',assignedRole:'team',priority:'high',dueDate:'2026-08-22',createdAt:'2026-06-15'},
+      {id:'task-010',projectId:'proj-001',title:'Phased move — Cardiology',description:'Coordinate move of Cardiology department, one week after Radiology.',status:'todo',assignedRole:'team',priority:'high',dueDate:'2026-08-29',createdAt:'2026-06-15'},
+      {id:'task-011',projectId:'proj-001',title:'Phased move — Outpatients',description:'Final department move. All three services live in new Freight Building location.',status:'todo',assignedRole:'team',priority:'high',dueDate:'2026-09-05',createdAt:'2026-06-15'},
+      {id:'task-012',projectId:'proj-001',title:'Final commissioning and client sign-off',description:'Walk all three departments with client. Agree snag list, complete handover documentation, close out project.',status:'todo',assignedRole:'team',priority:'high',dueDate:'2026-09-19',createdAt:'2026-06-15'}
+    ],
+    accessLog:[
+      {id:'access-001',projectId:'proj-001',name:'Donal Murphy',company:'Murphy Surveys Ltd',role:'Quantity Surveyor',purpose:'Site survey — freight building',checkIn:'08:15',checkOut:'12:30',induction:true,date:'2026-06-03',createdAt:'2026-06-03T08:15:00'},
+      {id:'access-002',projectId:'proj-001',name:'Sarah Kelly',company:'NetWorks Ireland',role:'IT Engineer',purpose:'IT infrastructure assessment',checkIn:'09:00',checkOut:'16:30',induction:true,date:'2026-06-17',createdAt:'2026-06-17T09:00:00'},
+      {id:'access-003',projectId:'proj-001',name:'Pádraic Ó Flaithearta',company:'ÓF Electrical',role:'Electrician',purpose:'Power survey and socket assessment',checkIn:'10:00',checkOut:null,induction:false,date:'2026-06-19',createdAt:'2026-06-19T10:00:00'}
+    ],
+    announcements:[
+      {id:'ann-001',projectId:'proj-001',title:'Project Kickoff — Mater Hospital Relocation',content:'The relocation project is now underway. We are targeting completion by end of September 2026, using a phased move approach across all three departments. Full project timeline and key milestones have been shared. Please review your assigned tasks and raise any concerns early.',authorId:'admin-001',visibleTo:['client','team','contractor','driver'],createdAt:'2026-06-01T09:00:00'},
+      {id:'ann-002',projectId:'proj-001',title:'Mandatory Site Safety Induction',content:'All contractors and suppliers must complete the site safety induction before carrying out any work in the Freight Building. Contact the site manager to schedule your slot. PPE is required at all times in the active work area. Emergency muster point is at the east entrance.',authorId:'admin-001',visibleTo:['contractor','driver'],createdAt:'2026-06-05T10:30:00'},
+      {id:'ann-003',projectId:'proj-001',title:'Floor Plan Approved — Construction Phase Begins',content:'The open-plan layout for the Freight Building has been approved by the client. We are now proceeding to construction. Network cabling and partitioning will commence the week of 7th July. All contractors should coordinate site access in advance through the access register.',authorId:'admin-001',visibleTo:['client','team','contractor'],createdAt:'2026-06-12T14:00:00'}
+    ]
+  };
+
+  return {
+    loading:true, user:null, showInvite:false, loginEmail:'', loginPassword:'', loginError:'',
+    reg:{code:'',name:'',email:'',password:''}, regError:'',
+    currentProjectId:null, currentTab:'dashboard',
+    showTaskModal:false, taskModal:{},
+    showAccessModal:false, accessModal:{},
+    showAnnouncementModal:false, announcementModal:{visibleTo:[]},
+    showInviteModal:false, inviteModal:{email:'',role:'team'}, inviteCreated:'',
+    showProjectModal:false, projectModal:{},
+
+    roleLabels:{admin:'Admin',client:'Client',team:'Team',contractor:'Contractor',driver:'Driver / Supplier'},
+    rolePillClass:{admin:'text-purple-400',client:'text-sky-400',team:'text-emerald-400',contractor:'text-amber-400',driver:'text-teal-400'},
+    roleBadge:{admin:'bg-purple-50 text-purple-700 border-purple-100',client:'bg-sky-50 text-sky-700 border-sky-100',team:'bg-emerald-50 text-emerald-700 border-emerald-100',contractor:'bg-amber-50 text-amber-700 border-amber-100',driver:'bg-teal-50 text-teal-700 border-teal-100'},
+    priorityBadge:{low:'bg-sky-50 text-sky-600 border border-sky-100',medium:'bg-amber-50 text-amber-600 border border-amber-100',high:'bg-rose-50 text-rose-600 border border-rose-100'},
+
+    get projects(){return _storeGet('projects')},
+    get users(){return _storeGet('users')},
+    get invites(){return _storeGet('invites')},
+    get pendingInvites(){return this.invites.filter(i=>!i.used)},
+    get currentProject(){return this.projects.find(p=>p.id===this.currentProjectId)||null},
+    get accessibleProjects(){if(!this.user)return[];if(this.user.role==='admin')return this.projects;return this.projects.filter(p=>(this.user.projectIds||[]).includes(p.id))},
+    get projectTasks(){if(!this.currentProjectId)return[];return _storeGet('tasks').filter(t=>t.projectId===this.currentProjectId)},
+    get visibleTasks(){if(!this.user)return[];if(['admin','client'].includes(this.user.role))return this.projectTasks;return this.projectTasks.filter(t=>t.assignedRole===this.user.role)},
+    get todoTasks(){return this.visibleTasks.filter(t=>t.status==='todo')},
+    get inProgressTasks(){return this.visibleTasks.filter(t=>t.status==='in_progress')},
+    get doneTasks(){return this.visibleTasks.filter(t=>t.status==='done')},
+    get myTasks(){if(!this.user)return[];const base=this.user.role==='admin'?this.projectTasks:this.projectTasks.filter(t=>t.assignedRole===this.user.role);return base.filter(t=>t.status!=='done')},
+    get canEditTasks(){return this.user&&['admin','team'].includes(this.user.role)},
+    get allAccess(){if(!this.currentProjectId)return[];return _storeGet('accessLog').filter(a=>a.projectId===this.currentProjectId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))},
+    get todayAccess(){const d=new Date().toISOString().split('T')[0];return this.allAccess.filter(a=>a.date===d)},
+    get visibleAnnouncements(){if(!this.user||!this.currentProjectId)return[];const all=_storeGet('announcements').filter(a=>a.projectId===this.currentProjectId);const f=this.user.role==='admin'?all:all.filter(a=>a.visibleTo.includes(this.user.role));return f.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))},
+    get tabTitle(){const map={dashboard:'Dashboard',tasks:'Task Board',access:'Access Register',updates:'Project Updates','admin-projects':'Projects','admin-users':'Team & Access'};return map[this.currentTab]||''},
+    get navItems(){if(!this.user)return[];const icons={dashboard:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',tasks:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',access:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',updates:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>','admin-projects':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>','admin-users':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'};
+      const base=[{tab:'dashboard',label:'Dashboard'},{tab:'tasks',label:'Task Board'},{tab:'access',label:'Access Register'},{tab:'updates',label:'Updates'}];
+      if(this.user.role==='admin')base.push({tab:'admin-projects',label:'Projects'},{tab:'admin-users',label:'Team & Access'});
+      return base.map(i=>({...i,icon:icons[i.tab]||''}))},
+
+    async init(){
+      await _storeInit(SEED);
+      this.loading=false;
+      let saved=null;try{saved=localStorage.getItem('sf_currentUser')}catch(e){}
+      if(saved){try{this.user=JSON.parse(saved);const f=this.getData('users').find(u=>u.id===this.user.id);if(f)this.user=f;const ps=this.accessibleProjects;if(ps.length)this.currentProjectId=ps[0].id}catch(e){try{localStorage.removeItem('sf_currentUser')}catch(e2){}}}
+    },
+
+    login(){
+      this.loginError='';
+      const u=this.getData('users').find(u=>u.email.toLowerCase()===this.loginEmail.toLowerCase().trim()&&u.password===this.loginPassword);
+      if(!u){this.loginError='Incorrect email or password.';return}
+      this.user=u;try{localStorage.setItem('sf_currentUser',JSON.stringify(u))}catch(e){}
+      const ps=this.accessibleProjects;if(ps.length)this.currentProjectId=ps[0].id;
+      this.currentTab='dashboard';
+    },
+
+    registerWithInvite(){
+      this.regError='';
+      const code=(this.reg.code||'').trim().toUpperCase();
+      const inv=this.getData('invites').find(i=>i.code===code&&!i.used);
+      if(!inv){this.regError='Invalid or already-used invite code.';return}
+      if(!this.reg.name.trim()||!this.reg.email.trim()||!this.reg.password){this.regError='Please fill in all fields.';return}
+      const users=this.getData('users');
+      if(users.find(u=>u.email.toLowerCase()===this.reg.email.toLowerCase().trim())){this.regError='An account with this email already exists.';return}
+      const newUser={id:'user-'+Date.now(),name:this.reg.name.trim(),email:this.reg.email.trim().toLowerCase(),password:this.reg.password,role:inv.role,projectIds:inv.projectId?[inv.projectId]:[],createdAt:new Date().toISOString()};
+      users.push(newUser);this.saveData('users',users);
+      const invites=this.getData('invites');const idx=invites.findIndex(i=>i.id===inv.id);invites[idx].used=true;this.saveData('invites',invites);
+      this.user=newUser;try{localStorage.setItem('sf_currentUser',JSON.stringify(newUser))}catch(e){}
+      const ps=this.accessibleProjects;if(ps.length)this.currentProjectId=ps[0].id;
+      this.showInvite=false;this.currentTab='dashboard';
+    },
+
+    logout(){this.user=null;try{localStorage.removeItem('sf_currentUser')}catch(e){}this.loginEmail='';this.loginPassword='';this.loginError='';this.currentTab='dashboard'},
+
+    openNewTask(){this.taskModal={status:'todo',priority:'medium',assignedRole:'team',projectId:this.currentProjectId};this.showTaskModal=true},
+    viewTask(task){this.taskModal={...task};this.showTaskModal=true},
+    saveTask(){
+      if(!this.taskModal.title){alert('Please enter a task title.');return}
+      const tasks=this.getData('tasks');
+      if(this.taskModal.id){const idx=tasks.findIndex(t=>t.id===this.taskModal.id);if(idx>-1)tasks[idx]={...this.taskModal}}
+      else tasks.push({...this.taskModal,id:'task-'+Date.now(),projectId:this.currentProjectId,createdAt:new Date().toISOString()});
+      this.saveData('tasks',tasks);this.showTaskModal=false;
+    },
+    updateTaskStatus(id,status){const tasks=this.getData('tasks');const idx=tasks.findIndex(t=>t.id===id);if(idx>-1){tasks[idx].status=status;this.saveData('tasks',tasks)}},
+
+    openAccessForm(){this.accessModal={induction:false};if(this.user){this.accessModal.name=this.user.name;this.accessModal.role=this.roleLabels[this.user.role]||''}this.showAccessModal=true},
+    saveAccess(){
+      if(!this.accessModal.name||!this.accessModal.role||!this.accessModal.purpose){alert('Please fill in Name, Role, and Purpose.');return}
+      const log=this.getData('accessLog');const now=new Date();
+      log.push({id:'access-'+Date.now(),projectId:this.currentProjectId,name:this.accessModal.name,company:this.accessModal.company||'',role:this.accessModal.role,purpose:this.accessModal.purpose,checkIn:now.toTimeString().substring(0,5),checkOut:null,induction:this.accessModal.induction||false,date:now.toISOString().split('T')[0],createdAt:now.toISOString()});
+      this.saveData('accessLog',log);this.showAccessModal=false;
+    },
+    signOut(id){const log=this.getData('accessLog');const idx=log.findIndex(a=>a.id===id);if(idx>-1){log[idx].checkOut=new Date().toTimeString().substring(0,5);this.saveData('accessLog',log)}},
+
+    openAnnouncementForm(){this.announcementModal={title:'',content:'',visibleTo:['client','team','contractor','driver']};this.showAnnouncementModal=true},
+    saveAnnouncement(){
+      if(!this.announcementModal.title||!this.announcementModal.content){alert('Please fill in title and message.');return}
+      const items=this.getData('announcements');
+      items.push({id:'ann-'+Date.now(),projectId:this.currentProjectId,title:this.announcementModal.title,content:this.announcementModal.content,authorId:this.user.id,visibleTo:[...this.announcementModal.visibleTo],createdAt:new Date().toISOString()});
+      this.saveData('announcements',items);this.showAnnouncementModal=false;
+    },
+
+    openInviteForm(){this.inviteModal={email:'',role:'team'};this.inviteCreated='';this.showInviteModal=true},
+    createInvite(){
+      if(!this.inviteModal.email){alert('Please enter an email address.');return}
+      const code=Math.random().toString(36).substring(2,8).toUpperCase();
+      const invites=this.getData('invites');
+      invites.push({id:'inv-'+Date.now(),code,email:this.inviteModal.email,role:this.inviteModal.role,projectId:this.currentProjectId,used:false,createdAt:new Date().toISOString()});
+      this.saveData('invites',invites);this.inviteCreated=code;
+    },
+    sendInviteEmail(){
+      const project=this.currentProject;
+      const role=this.roleLabels[this.inviteModal.role]||this.inviteModal.role;
+      const subject=encodeURIComponent(`You've been invited to join ${project?project.name:'SiteFlow'} on SiteFlow`);
+      const body=encodeURIComponent(
+`Hi,
+
+You've been invited to join ${project?project.name:'a project'} on SiteFlow as a ${role}.
+
+Your invite code is: ${this.inviteCreated}
+
+To get started:
+1. Open SiteFlow in your browser
+2. Click "Have an invite code? Create account"
+3. Enter your code: ${this.inviteCreated}
+4. Set up your name, email address and password
+
+If you have any questions, reply to this email.
+
+Thanks,
+${this.user?this.user.name:'The project team'}`
+      );
+      window.open(`mailto:${this.inviteModal.email}?subject=${subject}&body=${body}`,'_blank');
+    },
+    revokeInvite(id){if(!confirm('Revoke this invite?'))return;this.saveData('invites',this.getData('invites').filter(i=>i.id!==id))},
+
+    removeUser(id){if(!confirm('Remove this user?'))return;this.saveData('users',this.getData('users').filter(u=>u.id!==id))},
+
+    openNewProject(){this.projectModal={status:'active'};this.showProjectModal=true},
+    saveProject(){
+      if(!this.projectModal.name){alert('Please enter a project name.');return}
+      const projects=this.getData('projects');
+      const p={...this.projectModal,id:'proj-'+Date.now(),createdAt:new Date().toISOString()};
+      projects.push(p);this.saveData('projects',projects);this.showProjectModal=false;this.currentProjectId=p.id;this.currentTab='dashboard';
+    },
+    selectProject(id){this.currentProjectId=id;this.currentTab='dashboard'},
+
+    getData(k){return _storeGet(k)},
+    saveData(k,d){_storeSet(k,d)},
+    async resetAllData(){
+      if(!confirm('Restore original demo data? This will clear all data in the database.'))return;
+      _store=null;
+      try{localStorage.removeItem('sf_currentUser')}catch(e){}
+      if(_sb){
+        try{
+          for(const table of Object.values(_TABLE))await _sb.from(table).delete().gte('id','');
+        }catch(e){console.error('Reset error:',e);}
+      }
+      location.reload();
+    },
+
+    today(){return new Date().toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})},
+    formatDate(iso){if(!iso)return'';return new Date(iso).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})},
+    isOverdue(d){if(!d)return false;return new Date(d)<new Date(new Date().toDateString())}
+  }
+}
+</script>
+</body>
+</html>
