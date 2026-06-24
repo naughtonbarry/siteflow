@@ -1088,7 +1088,7 @@ function siteflow(){
     roleBadge:{admin:'bg-purple-50 text-purple-700 border-purple-100',client:'bg-sky-50 text-sky-700 border-sky-100',team:'bg-emerald-50 text-emerald-700 border-emerald-100',contractor:'bg-amber-50 text-amber-700 border-amber-100',driver:'bg-teal-50 text-teal-700 border-teal-100'},
     priorityBadge:{low:'bg-sky-50 text-sky-600 border border-sky-100',medium:'bg-amber-50 text-amber-600 border border-amber-100',high:'bg-rose-50 text-rose-600 border border-rose-100'},
 
-    get projects(){return _storeGet('projects')},
+    get projects(){void this._tick;return _storeGet('projects')},
     get users(){return _storeGet('users')},
     get invites(){return _storeGet('invites')},
     get pendingInvites(){return this.invites.filter(i=>!i.used)},
