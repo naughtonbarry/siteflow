@@ -988,7 +988,11 @@ const _FROM_DB=Object.fromEntries(Object.entries(_TO_DB).map(([k,m])=>[k,Object.
 function _toRow(key,obj){const m=_TO_DB[key]||{};const r={};for(const[k,v]of Object.entries(obj))r[m[k]||k]=v;return r;}
 function _fromRow(key,row){const m=_FROM_DB[key]||{};const r={};for(const[k,v]of Object.entries(row))r[m[k]||k]=v;return r;}
 
-function _storeGet(k){return(_store&&_store[k])?_store[k]:[]}
+function _storeGet(k){
+  if(_store&&_store[k]!==undefined)return _store[k]||[];
+  try{const r=localStorage.getItem('sf_'+k);if(r){const p=JSON.parse(r);if(_store)_store[k]=p;return p||[];}}catch(e){}
+  return[];
+}
 
 function _storeSet(k,data){
   const prev=(_store&&_store[k])?[..._store[k]]:[];
