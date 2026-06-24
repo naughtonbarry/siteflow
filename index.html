@@ -1247,7 +1247,7 @@ ${this.user?this.user.name:'The project team'}`
     selectProject(id){this.currentProjectId=id;this.currentTab='dashboard'},
 
     getData(k){return _storeGet(k)},
-    saveData(k,d){_storeSet(k,d)},
+    saveData(k,d){_storeSet(k,d);this._tick++},
     async resetAllData(){
       if(!confirm('Restore original demo data? This will clear all data in the database.'))return;
       _store=null;
