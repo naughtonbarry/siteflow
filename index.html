@@ -1094,7 +1094,7 @@ function siteflow(){
     get pendingInvites(){return this.invites.filter(i=>!i.used)},
     get currentProject(){return this.projects.find(p=>p.id===this.currentProjectId)||null},
     get accessibleProjects(){if(!this.user)return[];if(this.user.role==='admin')return this.projects;return this.projects.filter(p=>(this.user.projectIds||[]).includes(p.id))},
-    get projectTasks(){if(!this.currentProjectId)return[];return _storeGet('tasks').filter(t=>t.projectId===this.currentProjectId)},
+    get projectTasks(){void this._tick;if(!this.currentProjectId)return[];return _storeGet('tasks').filter(t=>t.projectId===this.currentProjectId)},
     get visibleTasks(){if(!this.user)return[];if(['admin','client'].includes(this.user.role))return this.projectTasks;return this.projectTasks.filter(t=>t.assignedRole===this.user.role)},
     get todoTasks(){return this.visibleTasks.filter(t=>t.status==='todo')},
     get inProgressTasks(){return this.visibleTasks.filter(t=>t.status==='in_progress')},
