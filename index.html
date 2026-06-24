@@ -1138,6 +1138,34 @@ ${this.user?this.user.name:'The project team'}`
 
     removeUser(id){if(!confirm('Remove this user?'))return;this.saveData('users',this.getData('users').filter(u=>u.id!==id))},
 
+    saveMoodboardItem(){
+      const m=this.moodboardModal;
+      if(m.tab==='url'){
+        if(!m.url.trim()){alert('Please enter an image URL.');return}
+        const items=this.getData('moodboardItems');
+        items.push({id:'mb-'+Date.now(),projectId:this.currentProjectId,src:m.url.trim(),label:m.label.trim(),createdAt:new Date().toISOString()});
+        this.saveData('moodboardItems',items);
+        this.showMoodboardModal=false;
+      }
+    },
+    handleMoodboardFile(event){
+      const file=event.target.files[0];
+      if(!file)return;
+      if(file.size>4*1024*1024){alert('Image is too large (max 4 MB). Try a smaller file or use a web URL instead.');event.target.value='';return}
+      const reader=new FileReader();
+      reader.onload=(e)=>{
+        const items=this.getData('moodboardItems');
+        items.push({id:'mb-'+Date.now(),projectId:this.currentProjectId,src:e.target.result,label:this.moodboardModal.label.trim(),createdAt:new Date().toISOString()});
+        this.saveData('moodboardItems',items);
+        this.showMoodboardModal=false;
+      };
+      reader.readAsDataURL(file);
+    },
+    deleteMoodboardItem(id){
+      if(!confirm('Remove this image?'))return;
+      this.saveData('moodboardItems',this.getData('moodboardItems').filter(m=>m.id!==id));
+    },
+
     openNewProject(){this.projectModal={status:'active'};this.showProjectModal=true},
     saveProject(){
       if(!this.projectModal.name){alert('Please enter a project name.');return}
