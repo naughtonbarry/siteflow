@@ -1089,8 +1089,8 @@ function siteflow(){
     priorityBadge:{low:'bg-sky-50 text-sky-600 border border-sky-100',medium:'bg-amber-50 text-amber-600 border border-amber-100',high:'bg-rose-50 text-rose-600 border border-rose-100'},
 
     get projects(){void this._tick;return _storeGet('projects')},
-    get users(){return _storeGet('users')},
-    get invites(){return _storeGet('invites')},
+    get users(){void this._tick;return _storeGet('users')},
+    get invites(){void this._tick;return _storeGet('invites')},
     get pendingInvites(){return this.invites.filter(i=>!i.used)},
     get currentProject(){return this.projects.find(p=>p.id===this.currentProjectId)||null},
     get accessibleProjects(){if(!this.user)return[];if(this.user.role==='admin')return this.projects;return this.projects.filter(p=>(this.user.projectIds||[]).includes(p.id))},
