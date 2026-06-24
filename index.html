@@ -672,6 +672,73 @@
 
 <!-- ==================== MODALS ==================== -->
 
+<!-- Moodboard — Add image -->
+<div x-show="showMoodboardModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)" @click.self="showMoodboardModal=false">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-900">Add image</h3>
+      <button @click="showMoodboardModal=false" class="text-slate-300 hover:text-slate-500 transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <!-- Tabs -->
+      <div class="flex rounded-lg bg-slate-100 p-1 gap-1">
+        <button @click="moodboardModal.tab='url'"
+                class="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors"
+                :class="moodboardModal.tab==='url' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+          Web URL
+        </button>
+        <button @click="moodboardModal.tab='upload'"
+                class="flex-1 py-1.5 text-sm font-medium rounded-md transition-colors"
+                :class="moodboardModal.tab==='upload' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+          Upload photo
+        </button>
+      </div>
+      <!-- URL tab -->
+      <div x-show="moodboardModal.tab==='url'" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Image URL</label>
+          <input x-model="moodboardModal.url" type="url" placeholder="https://..."
+                 class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300">
+        </div>
+      </div>
+      <!-- Upload tab -->
+      <div x-show="moodboardModal.tab==='upload'" class="space-y-3">
+        <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" class="mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="text-sm text-slate-400">Click to choose a photo</span>
+          <span class="text-xs text-slate-300 mt-0.5">Max 4 MB</span>
+          <input type="file" accept="image/*" class="hidden" @change="handleMoodboardFile($event)">
+        </label>
+      </div>
+      <!-- Label (both tabs) -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Label <span class="font-normal normal-case text-slate-300">(optional)</span></label>
+        <input x-model="moodboardModal.label" type="text" placeholder="e.g. Desk layout, Flooring sample..."
+               class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300">
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-50">
+      <button @click="showMoodboardModal=false" class="text-sm text-slate-400 hover:text-slate-600 transition-colors px-4 py-2">Cancel</button>
+      <button x-show="moodboardModal.tab==='url'" @click="saveMoodboardItem()"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">Add image</button>
+    </div>
+  </div>
+</div>
+
+<!-- Moodboard — Lightbox -->
+<div x-show="moodboardViewing" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.85);backdrop-filter:blur(6px)" @click.self="moodboardViewing=null" @keydown.escape.window="moodboardViewing=null">
+  <div class="relative max-w-4xl w-full flex flex-col items-center">
+    <img :src="moodboardViewing?.src" :alt="moodboardViewing?.label||''"
+         class="max-h-[80vh] w-auto rounded-xl shadow-2xl object-contain">
+    <div x-show="moodboardViewing?.label" class="mt-4 text-white/80 text-sm font-medium" x-text="moodboardViewing?.label"></div>
+    <button @click="moodboardViewing=null" class="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+</div>
+
 <!-- Task -->
 <div x-show="showTaskModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.5);backdrop-filter:blur(4px)" @click.self="showTaskModal=false">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
