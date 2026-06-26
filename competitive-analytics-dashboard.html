@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Competitive Analytics Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f5;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.1);
+    --border-em: rgba(0,0,0,0.2);
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --accent: #185fa5;
+    --accent-light: #e6f1fb;
+    --accent-text: #0c447c;
+    --success: #0f6e56;
+    --success-bg: #e1f5ee;
+    --success-text: #085041;
+    --warn: #854f0b;
+    --warn-bg: #faeeda;
+    --warn-text: #633806;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+    --danger-text: #791f1f;
+    --purple: #534ab7;
+    --purple-bg: #eeedfe;
+    --purple-text: #3c3489;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #232321;
+      --surface2: #2c2c2a;
+      --border: rgba(255,255,255,0.1);
+      --border-em: rgba(255,255,255,0.2);
+      --text: #f1efe8;
+      --text2: #b4b2a9;
+      --text3: #888780;
+      --accent: #378add;
+      --accent-light: #0c447c;
+      --accent-text: #b5d4f4;
+      --success: #1d9e75;
+      --success-bg: #085041;
+      --success-text: #9fe1cb;
+      --warn: #ef9f27;
+      --warn-bg: #633806;
+      --warn-text: #fac775;
+      --danger: #e24b4a;
+      --danger-bg: #791f1f;
+      --danger-text: #f7c1c1;
+      --purple: #7f77dd;
+      --purple-bg: #3c3489;
+      --purple-text: #cecbf6;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border-em);
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 8px;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 15px; flex-shrink: 0; }
+  .logo i { color: var(--accent); font-size: 20px; }
+  .header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn-label { display: inline; }
+  @media (max-width: 480px) {
+    .btn-label { display: none; }
+    .header-actions .btn-sm { padding: 6px 8px; }
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: var(--radius); border: 0.5px solid var(--border-em);
+    background: transparent; color: var(--text); cursor: pointer; font-size: 13px;
+    transition: background 0.1s;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .btn-primary:hover { opacity: 0.9; background: var(--accent); }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger-bg); }
+  .main { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 56px); }
+  .sidebar {
+    background: var(--surface);
+    border-right: 0.5px solid var(--border);
+    padding: 1.5rem 1rem;
+    overflow-y: auto;
+  }
+  .content { padding: 1.25rem 1.5rem; overflow-y: auto; }
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 150;
+  }
+  @media (max-width: 700px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed; top: 56px; left: 0; bottom: 0; width: 290px;
+      z-index: 160; transform: translateX(-100%); transition: transform 0.22s ease;
+      border-right: 0.5px solid var(--border-em); box-shadow: 4px 0 16px rgba(0,0,0,0.12);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay.open { display: block; }
+    .content { padding: 1rem; }
+  }
+  .section-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text3); margin-bottom: 8px;
+  }
+  .site-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+    margin-bottom: 8px;
+    background: var(--surface);
+    position: relative;
+  }
+  .site-card.own-site { border-color: var(--accent); background: var(--accent-light); }
+  .site-card.own-site .site-name { color: var(--accent-text); }
+  .site-name { font-weight: 500; font-size: 13px; margin-bottom: 2px; word-break: break-all; }
+  .site-meta { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 500;
+  }
+  .badge-confirmed { background: var(--success-bg); color: var(--success-text); }
+  .badge-estimated { background: var(--warn-bg); color: var(--warn-text); }
+  .badge-accent { background: var(--accent-light); color: var(--accent-text); }
+  .badge-purple { background: var(--purple-bg); color: var(--purple-text); }
+  .color-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block;
+  }
+  .input-group { margin-bottom: 12px; }
+  .input-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  input[type="text"], input[type="url"] {
+    width: 100%; padding: 7px 10px; border: 0.5px solid var(--border-em);
+    border-radius: var(--radius); background: var(--surface); color: var(--text);
+    font-size: 13px; outline: none;
+  }
+  input[type="text"]:focus, input[type="url"]:focus { border-color: var(--accent); }
+  .divider { height: 0.5px; background: var(--border); margin: 1rem 0; }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .status-dot.live { background: var(--success); }
+  .status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+  .status-dot.error { background: var(--danger); }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+  .tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 8px 14px; font-size: 13px; cursor: pointer; border: none; background: none;
+    color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -0.5px;
+    transition: color 0.1s; white-space: nowrap; flex-shrink: 0;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  .tab:hover:not(.active) { color: var(--text); }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  @media (max-width: 480px) {
+    .metric-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .metric-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 14px 16px;
+  }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--text); line-height: 1.2; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .metric-delta { font-size: 11px; margin-top: 3px; }
+  .delta-up { color: var(--success); }
+  .delta-down { color: var(--danger); }
+  .chart-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .chart-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--text2); }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .comparison-grid { display: grid; gap: 0; overflow: hidden; border: 0.5px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1rem; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 0.5px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1rem; }
+  .table-scroll .comparison-grid { border: none; border-radius: 0; margin-bottom: 0; min-width: 480px; }
+  .comparison-header {
+    display: grid; background: var(--surface2);
+    border-bottom: 0.5px solid var(--border);
+    font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .comparison-row {
+    display: grid; background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    align-items: center;
+  }
+  .comparison-row:last-child { border-bottom: none; }
+  .comparison-row:nth-child(even) { background: var(--surface2); }
+  .comparison-cell { padding: 10px 12px; }
+  .comparison-cell.metric-name { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .comparison-cell.own { color: var(--accent-text); font-weight: 500; }
+  .bar-inline {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+  }
+  .bar-track { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+  .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  @media (max-width: 560px) {
+    .source-grid { grid-template-columns: 1fr; }
+  }
+  .source-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 12px 14px;
+  }
+  .source-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .source-name { font-size: 12px; font-weight: 500; }
+  .source-status { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); }
+  .traffic-source-bar {
+    display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 1px; margin: 8px 0;
+  }
+  .tbar-seg { height: 100%; transition: width 0.5s ease; }
+  .page-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; }
+  .page-row:last-child { border-bottom: none; }
+  .page-path { color: var(--text2); font-family: monospace; font-size: 11px; }
+  .page-visits { color: var(--text); font-weight: 500; }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: flex-end; justify-content: center; z-index: 200;
+  }
+  .modal {
+    background: var(--surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border: 0.5px solid var(--border-em); width: 100%; max-width: 480px; padding: 1.5rem;
+    max-height: 90vh; overflow-y: auto;
+  }
+  @media (min-width: 560px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: var(--radius-xl); }
+  }
+  .modal-title { font-size: 15px; font-weight: 500; margin-bottom: 1rem; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
+  .ga-setup {
+    background: var(--accent-light); border: 0.5px solid var(--accent);
+    border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 1rem;
+  }
+  .ga-setup-title { font-size: 13px; font-weight: 500; color: var(--accent-text); margin-bottom: 4px; }
+  .ga-setup-text { font-size: 12px; color: var(--text2); }
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text3); }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+  .tag { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+  .tag-confirmed { background: var(--success-bg); color: var(--success-text); }
+  .tag-estimated { background: var(--warn-bg); color: var(--warn-text); }
+  [x-cloak] { display: none !important; }
+  .spinner { animation: spin 0.8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .tooltip-note { font-size: 11px; color: var(--text3); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  select {
+    width: 100%; padding: 7px 10px; border: 0.5px solid var(--border-em);
+    border-radius: var(--radius); background: var(--surface); color: var(--text);
+    font-size: 13px; outline: none; cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+  .loading-shimmer {
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius);
+    height: 20px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .no-competitors {
+    grid-column: 1/-1;
+    text-align: center; padding: 2rem; color: var(--text3); font-size: 13px;
+  }
+  .step-dot {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+    color: #fff; font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .step-text { font-size: 12px; color: var(--text2); padding-top: 2px; }
+</style>
+</head>
+<body x-data="dashboard()" x-cloak>
+
+<!-- Header -->
+<header class="header">
+  <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+    <button class="btn btn-sm" id="sidebar-toggle" aria-label="Toggle sidebar"
+      style="display:none;" @click="sidebarOpen = !sidebarOpen">
+      <i class="ti ti-menu-2" aria-hidden="true"></i>
+    </button>
+    <div class="logo">
+      <i class="ti ti-chart-bar-popular" aria-hidden="true"></i>
+      <span class="btn-label">Competitive Analytics</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-sm" @click="refreshAll()" :disabled="isRefreshing">
+      <i class="ti ti-refresh" :class="isRefreshing ? 'spinner' : ''" aria-hidden="true"></i>
+      <span class="btn-label" x-text="isRefreshing ? 'Refreshing…' : 'Refresh all'"></span>
+    </button>
+    <button class="btn btn-sm" @click="exportData()">
+      <i class="ti ti-download" aria-hidden="true"></i>
+      <span class="btn-label">Export CSV</span>
+    </button>
+    <button class="btn btn-primary btn-sm" @click="showAddCompetitor = true">
+      <i class="ti ti-plus" aria-hidden="true"></i>
+      <span class="btn-label">Add competitor</span>
+    </button>
+  </div>
+</header>
+
+<div class="sidebar-overlay" :class="sidebarOpen ? 'open' : ''" @click="sidebarOpen = false"></div>
+<div class="main">
+  <!-- Sidebar -->
+  <aside class="sidebar" :class="sidebarOpen ? 'open' : ''">
+    <div class="section-label">Your website</div>
+    <div class="site-card own-site">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div class="site-name" x-text="ownSite.url || 'Not configured'"></div>
+          <div class="site-meta">
+            <span class="status-dot" :class="ownSite.gaConnected ? 'live' : 'error'"></span>
+            <span x-text="ownSite.gaConnected ? 'Google Analytics connected' : 'GA not connected'"></span>
+          </div>
+        </div>
+        <span class="badge badge-confirmed" x-show="ownSite.gaConnected">
+          <i class="ti ti-check" style="font-size:10px" aria-hidden="true"></i>
+          Confirmed
+        </span>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:6px;">
+        <button class="btn btn-sm" style="flex:1" @click="showSiteConfig = true">
+          <i class="ti ti-settings" aria-hidden="true"></i>
+          Configure
+        </button>
+        <button class="btn btn-sm" x-show="!ownSite.gaConnected" @click="connectGA()"
+          style="flex:1; border-color:var(--accent); color:var(--accent);">
+          Connect GA
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Competitors</span>
+      <span x-text="competitors.length + '/10'" style="font-size:11px; color:var(--text3);"></span>
+    </div>
+
+    <template x-for="(comp, idx) in competitors" :key="comp.id">
+      <div class="site-card" style="cursor:pointer;" @click="selectedCompetitorId = comp.id"
+        :style="selectedCompetitorId === comp.id ? 'border-color:var(--accent)' : ''">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <span class="color-dot" :style="'background:' + comp.color"></span>
+              <span class="site-name" x-text="comp.name || comp.url" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+            </div>
+            <div class="site-meta">
+              <span class="status-dot" :class="comp.status"></span>
+              <span x-text="comp.statusText"></span>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm" style="padding:2px 5px; flex-shrink:0;"
+            @click.stop="removeCompetitor(comp.id)" title="Remove">
+            <i class="ti ti-x" style="font-size:11px" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div style="margin-top:6px; display:flex; gap:4px; flex-wrap:wrap;">
+          <span class="badge badge-estimated">
+            <i class="ti ti-database" style="font-size:10px" aria-hidden="true"></i>
+            Estimated
+          </span>
+          <span class="badge badge-accent" style="font-size:10px;" x-text="comp.dataSources.join(' · ')"></span>
+        </div>
+      </div>
+    </template>
+
+    <button class="btn" style="width:100%; justify-content:center; margin-top:4px;"
+      @click="showAddCompetitor = true" x-show="competitors.length < 10">
+      <i class="ti ti-plus" aria-hidden="true"></i>
+      Add competitor
+    </button>
+
+    <div class="divider"></div>
+    <div class="section-label">Data legend</div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2);">
+        <span class="badge badge-confirmed" style="font-size:10px;">Confirmed</span>
+        Direct from Google Analytics API
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2);">
+        <span class="badge badge-estimated" style="font-size:10px;">Estimated</span>
+        Aggregated from public sources
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Data sources</div>
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <template x-for="src in dataSources" :key="src.name">
+        <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px;">
+          <span x-text="src.name" style="color:var(--text2);"></span>
+          <span class="badge" :class="src.enabled ? 'badge-confirmed' : ''"
+            :style="!src.enabled ? 'background:var(--surface2); color:var(--text3);' : ''"
+            x-text="src.enabled ? 'Active' : 'Disabled'"></span>
+        </div>
+      </template>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="content">
+    <!-- GA Setup Banner -->
+    <div class="ga-setup" x-show="!ownSite.gaConnected">
+      <div class="ga-setup-title">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        Connect Google Analytics for confirmed metrics
+      </div>
+      <div class="ga-setup-text" style="margin-bottom:10px;">
+        Your own site data shows as estimated until you connect Google Analytics. Competitors always show as estimated from public aggregation.
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+        <template x-for="step in gaSetupSteps" :key="step.n">
+          <div class="step-row">
+            <div class="step-dot" x-text="step.n"></div>
+            <div class="step-text" x-text="step.text"></div>
+          </div>
+        </template>
+      </div>
+      <button class="btn btn-primary btn-sm" @click="connectGA()">
+        <i class="ti ti-brand-google" aria-hidden="true"></i>
+        Connect Google Analytics
+      </button>
+    </div>
+
+    <!-- Site Config + Date Range -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;" x-show="ownSite.url">
+      <div>
+        <div style="font-size:15px; font-weight:500;" x-text="ownSite.url"></div>
+        <div style="font-size:12px; color:var(--text3);">vs <span x-text="competitors.length"></span> competitor<span x-text="competitors.length !== 1 ? 's' : ''"></span></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <label style="font-size:12px; color:var(--text2);">Date range</label>
+        <select x-model="dateRange" @change="refreshAll()" style="width:auto; padding:5px 8px;">
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="180">Last 6 months</option>
+          <option value="365">Last 12 months</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" x-show="!ownSite.url">
+      <div class="empty-icon"><i class="ti ti-world-search" aria-hidden="true"></i></div>
+      <div style="font-size:14px; font-weight:500; color:var(--text2); margin-bottom:6px;">Configure your website to get started</div>
+      <div style="font-size:12px; color:var(--text3); margin-bottom:16px;">Enter your site URL and optionally connect Google Analytics for accurate data.</div>
+      <button class="btn btn-primary" @click="showSiteConfig = true">
+        <i class="ti ti-settings" aria-hidden="true"></i>
+        Configure my website
+      </button>
+    </div>
+
+    <!-- Dashboard content -->
+    <div x-show="ownSite.url">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab" :class="activeTab === 'overview' ? 'active' : ''" @click="activeTab = 'overview'">Overview</button>
+        <button class="tab" :class="activeTab === 'traffic' ? 'active' : ''" @click="activeTab = 'traffic'">Traffic sources</button>
+        <button class="tab" :class="activeTab === 'pages' ? 'active' : ''" @click="activeTab = 'pages'">Top pages</button>
+        <button class="tab" :class="activeTab === 'engagement' ? 'active' : ''" @click="activeTab = 'engagement'">Engagement</button>
+        <button class="tab" :class="activeTab === 'sources' ? 'active' : ''" @click="activeTab = 'sources'">Data sources</button>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div x-show="activeTab === 'overview'">
+        <!-- Own site metrics -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div style="font-size:12px; font-weight:500; color:var(--text2);">
+            <span class="color-dot" style="background:var(--accent);"></span>
+            Your site — <span x-text="ownSite.url"></span>
+            <span class="badge badge-confirmed" style="margin-left:6px;" x-show="ownSite.gaConnected">Confirmed</span>
+            <span class="badge badge-estimated" style="margin-left:6px;" x-show="!ownSite.gaConnected">Estimated</span>
+          </div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">Monthly unique visitors</div>
+            <div class="metric-value" x-text="formatNum(ownSite.data.monthlyVisitors)"></div>
+            <div class="metric-delta delta-up"><i class="ti ti-trending-up" aria-hidden="true"></i> <span x-text="ownSite.data.visitorsGrowth + '% vs prev period'"></span></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Avg session duration</div>
+            <div class="metric-value" x-text="ownSite.data.avgDuration"></div>
+            <div class="metric-sub">Minutes per visit</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Bounce rate</div>
+            <div class="metric-value" x-text="ownSite.data.bounceRate + '%'"></div>
+            <div class="metric-sub">Lower is better</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Pages per session</div>
+            <div class="metric-value" x-text="ownSite.data.pagesPerSession"></div>
+            <div class="metric-sub">Avg depth</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Domain authority</div>
+            <div class="metric-value" x-text="ownSite.data.domainAuthority"></div>
+            <div class="metric-sub">Out of 100 (Moz)</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Backlinks</div>
+            <div class="metric-value" x-text="formatNum(ownSite.data.backlinks)"></div>
+            <div class="metric-sub">Referring domains</div>
+          </div>
+        </div>
+
+        <!-- Side-by-side comparison -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Monthly visitors — side-by-side comparison</div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span class="tag tag-confirmed">Your data: confirmed</span>
+              <span class="tag tag-estimated">Competitors: estimated</span>
+            </div>
+          </div>
+          <div class="chart-legend" style="margin-bottom:12px;">
+            <div class="legend-item">
+              <div class="legend-swatch" style="background:var(--accent);"></div>
+              <span x-text="ownSite.url"></span>
+            </div>
+            <template x-for="comp in competitors" :key="comp.id">
+              <div class="legend-item">
+                <div class="legend-swatch" :style="'background:' + comp.color"></div>
+                <span x-text="comp.name || comp.url"></span>
+              </div>
+            </template>
+          </div>
+          <div style="position:relative; width:100%; height:260px;">
+            <canvas id="visitorsChart" role="img" aria-label="Bar chart comparing monthly unique visitors across all tracked websites">Monthly visitor comparison chart</canvas>
+          </div>
+        </div>
+
+        <!-- Comparison table -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Metric comparison</div>
+          </div>
+          <div class="table-scroll"><div class="comparison-grid" :style="'grid-template-columns: 160px repeat(' + (1 + competitors.length) + ', 1fr)'">
+            <div class="comparison-header">
+              <div class="comparison-cell">Metric</div>
+              <div class="comparison-cell" style="color:var(--accent-text);" x-text="ownSite.url"></div>
+              <template x-for="comp in competitors" :key="comp.id">
+                <div class="comparison-cell" x-text="comp.name || comp.url"></div>
+              </template>
+            </div>
+            <template x-for="metric in comparisonMetrics" :key="metric.key">
+              <div class="comparison-row" :style="'grid-template-columns: 160px repeat(' + (1 + competitors.length) + ', 1fr)'">
+                <div class="comparison-cell metric-name" x-text="metric.label"></div>
+                <div class="comparison-cell own" x-text="metric.format(ownSite.data[metric.key])"></div>
+                <template x-for="comp in competitors" :key="comp.id">
+                  <div class="comparison-cell">
+                    <div class="bar-inline">
+                      <span x-text="metric.format(comp.data[metric.key])"></span>
+                      <div class="bar-track" x-show="metric.showBar">
+                        <div class="bar-fill" :style="'width:' + barWidth(comp.data[metric.key], metric.key) + '%; background:' + comp.color"></div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+          </div></div>
+          <div class="tooltip-note">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+            Competitor data is estimated from SimilarWeb, Moz, Majestic, and Ubersuggest. Accuracy varies by site size and region.
+          </div>
+        </div>
+      </div>
+
+      <!-- TRAFFIC SOURCES TAB -->
+      <div x-show="activeTab === 'traffic'">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Traffic source distribution</div>
+          </div>
+          <div style="position:relative; width:100%; height:280px;">
+            <canvas id="trafficSourceChart" role="img" aria-label="Stacked bar chart of traffic sources by website">Traffic source comparison</canvas>
+          </div>
+        </div>
+        <div class="source-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          <!-- Own site -->
+          <div class="source-card" style="border-color:var(--accent);">
+            <div class="source-header">
+              <div class="source-name" x-text="ownSite.url"></div>
+              <span class="badge badge-confirmed" x-show="ownSite.gaConnected">Confirmed</span>
+              <span class="badge badge-estimated" x-show="!ownSite.gaConnected">Estimated</span>
+            </div>
+            <div class="traffic-source-bar">
+              <div class="tbar-seg" :style="'width:' + ownSite.data.sources.organic + '%; background:#185fa5'"></div>
+              <div class="tbar-seg" :style="'width:' + ownSite.data.sources.direct + '%; background:#1d9e75'"></div>
+              <div class="tbar-seg" :style="'width:' + ownSite.data.sources.referral + '%; background:#ef9f27'"></div>
+              <div class="tbar-seg" :style="'width:' + ownSite.data.sources.social + '%; background:#7f77dd'"></div>
+              <div class="tbar-seg" :style="'width:' + ownSite.data.sources.paid + '%; background:#e24b4a'"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:11px;">
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Organic</span><span x-text="ownSite.data.sources.organic + '%'"></span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Direct</span><span x-text="ownSite.data.sources.direct + '%'"></span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Referral</span><span x-text="ownSite.data.sources.referral + '%'"></span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Social</span><span x-text="ownSite.data.sources.social + '%'"></span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Paid</span><span x-text="ownSite.data.sources.paid + '%'"></span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Email</span><span x-text="ownSite.data.sources.email + '%'"></span></div>
+            </div>
+          </div>
+          <!-- Competitors -->
+          <template x-for="comp in competitors" :key="comp.id">
+            <div class="source-card">
+              <div class="source-header">
+                <div class="source-name" style="display:flex; align-items:center; gap:6px;">
+                  <span class="color-dot" :style="'background:' + comp.color"></span>
+                  <span x-text="comp.name || comp.url"></span>
+                </div>
+                <span class="badge badge-estimated">Estimated</span>
+              </div>
+              <div class="traffic-source-bar">
+                <div class="tbar-seg" :style="'width:' + comp.data.sources.organic + '%; background:#185fa5'"></div>
+                <div class="tbar-seg" :style="'width:' + comp.data.sources.direct + '%; background:#1d9e75'"></div>
+                <div class="tbar-seg" :style="'width:' + comp.data.sources.referral + '%; background:#ef9f27'"></div>
+                <div class="tbar-seg" :style="'width:' + comp.data.sources.social + '%; background:#7f77dd'"></div>
+                <div class="tbar-seg" :style="'width:' + comp.data.sources.paid + '%; background:#e24b4a'"></div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:11px;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Organic</span><span x-text="comp.data.sources.organic + '%'"></span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Direct</span><span x-text="comp.data.sources.direct + '%'"></span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Referral</span><span x-text="comp.data.sources.referral + '%'"></span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Social</span><span x-text="comp.data.sources.social + '%'"></span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Paid</span><span x-text="comp.data.sources.paid + '%'"></span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text3);">Email</span><span x-text="comp.data.sources.email + '%'"></span></div>
+              </div>
+            </div>
+          </template>
+          <div class="no-competitors" x-show="competitors.length === 0">No competitors added yet.</div>
+        </div>
+      </div>
+
+      <!-- TOP PAGES TAB -->
+      <div x-show="activeTab === 'pages'">
+        <div class="source-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+          <!-- Own site -->
+          <div class="source-card" style="border-color:var(--accent);">
+            <div class="source-header">
+              <div class="source-name" x-text="ownSite.url"></div>
+              <span class="badge badge-confirmed" x-show="ownSite.gaConnected">Confirmed</span>
+              <span class="badge badge-estimated" x-show="!ownSite.gaConnected">Estimated</span>
+            </div>
+            <template x-for="page in ownSite.data.topPages" :key="page.path">
+              <div class="page-row">
+                <span class="page-path" x-text="page.path"></span>
+                <span class="page-visits" x-text="formatNum(page.visits) + '/mo'"></span>
+              </div>
+            </template>
+          </div>
+          <!-- Competitors -->
+          <template x-for="comp in competitors" :key="comp.id">
+            <div class="source-card">
+              <div class="source-header">
+                <div class="source-name" style="display:flex; align-items:center; gap:6px;">
+                  <span class="color-dot" :style="'background:' + comp.color"></span>
+                  <span x-text="comp.name || comp.url"></span>
+                </div>
+                <span class="badge badge-estimated">Estimated</span>
+              </div>
+              <template x-for="page in comp.data.topPages" :key="page.path">
+                <div class="page-row">
+                  <span class="page-path" x-text="page.path"></span>
+                  <span class="page-visits" x-text="formatNum(page.visits) + '/mo'"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div class="no-competitors" x-show="competitors.length === 0">No competitors added yet.</div>
+        </div>
+      </div>
+
+      <!-- ENGAGEMENT TAB -->
+      <div x-show="activeTab === 'engagement'">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Engagement metrics comparison</div>
+          </div>
+          <div style="position:relative; width:100%; height:280px;">
+            <canvas id="engagementChart" role="img" aria-label="Radar chart comparing engagement metrics across all sites">Engagement comparison</canvas>
+          </div>
+        </div>
+        <div class="metric-grid">
+          <template x-for="(comp, i) in [ownSiteSummary, ...competitors]" :key="i">
+            <div class="metric-card" :style="i === 0 ? 'border:0.5px solid var(--accent);' : ''">
+              <div class="metric-label" style="display:flex; align-items:center; gap:4px;">
+                <span class="color-dot" :style="'background:' + (i === 0 ? 'var(--accent)' : comp.color)"></span>
+                <span x-text="i === 0 ? ownSite.url : (comp.name || comp.url)" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+              </div>
+              <div style="font-size:13px; margin-top:6px;">
+                <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:0.5px solid var(--border);">
+                  <span style="color:var(--text3);">Bounce rate</span>
+                  <span x-text="(i === 0 ? ownSite.data.bounceRate : comp.data.bounceRate) + '%'"></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:0.5px solid var(--border);">
+                  <span style="color:var(--text3);">Session duration</span>
+                  <span x-text="i === 0 ? ownSite.data.avgDuration : comp.data.avgDuration"></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:4px 0;">
+                  <span style="color:var(--text3);">Pages/session</span>
+                  <span x-text="i === 0 ? ownSite.data.pagesPerSession : comp.data.pagesPerSession"></span>
+                </div>
+              </div>
+              <div style="margin-top:6px;">
+                <span class="badge badge-confirmed" x-show="i === 0 && ownSite.gaConnected">Confirmed</span>
+                <span class="badge badge-estimated" x-show="i > 0 || !ownSite.gaConnected">Estimated</span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- DATA SOURCES TAB -->
+      <div x-show="activeTab === 'sources'">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Active data sources</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <template x-for="src in dataSources" :key="src.name">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--surface2); border-radius:var(--radius); border:0.5px solid var(--border);">
+                <div>
+                  <div style="font-size:13px; font-weight:500;" x-text="src.name"></div>
+                  <div style="font-size:11px; color:var(--text3); margin-top:2px;" x-text="src.description"></div>
+                  <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                    <template x-for="metric in src.provides" :key="metric">
+                      <span class="badge badge-accent" style="font-size:10px;" x-text="metric"></span>
+                    </template>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; margin-left:12px;">
+                  <span class="badge" :class="src.enabled ? 'badge-confirmed' : ''"
+                    :style="!src.enabled ? 'background:var(--surface2); color:var(--text3); border:0.5px solid var(--border);' : ''"
+                    x-text="src.enabled ? 'Active' : 'Disabled'"></span>
+                  <button class="btn btn-sm" @click="src.enabled = !src.enabled; refreshAll()"
+                    x-text="src.enabled ? 'Disable' : 'Enable'"></button>
+                  <span style="font-size:10px; color:var(--text3);" x-text="'Updated ' + src.lastUpdate"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div class="tooltip-note" style="margin-top:12px;">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+            To add a new data source, implement the <code style="font-size:10px; background:var(--surface2); padding:1px 4px; border-radius:3px;">DataSourceAdapter</code> interface and register it in the sources registry. See architecture notes below.
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Architecture — adding a new data source</div>
+          </div>
+          <div style="background:var(--surface2); border-radius:var(--radius); padding:14px; font-family:monospace; font-size:11px; color:var(--text2); line-height:1.8; overflow-x:auto;">
+<pre style="white-space:pre-wrap; margin:0; font-family:monospace; color:var(--text2);">// 1. Implement the DataSourceAdapter interface
+class MyNewSource {
+  name = 'MyNewSource';
+  provides = ['monthly_traffic', 'domain_authority'];
+
+  async fetchData(url) {
+    // Call your API here
+    const raw = await fetch(`https://api.mynewsource.com/site?q=${url}`);
+    // Normalize to standard schema
+    return {
+      monthlyVisitors: raw.monthly_visits,
+      domainAuthority: raw.da_score,
+    };
+  }
+
+  normalize(raw) { /* map to standard schema */ }
+}
+
+// 2. Register in DATA_SOURCES array (top of dashboard() function)
+dataSources.push(new MyNewSource());
+
+// 3. Merge in aggregateCompetitorData()
+// The aggregator automatically merges all enabled sources.</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Competitor Modal -->
+<div class="modal-overlay" x-show="showAddCompetitor" @click.self="showAddCompetitor = false">
+  <div class="modal">
+    <div class="modal-title">
+      <i class="ti ti-plus" aria-hidden="true"></i>
+      Add competitor
+    </div>
+    <div class="input-group">
+      <label>Competitor URL *</label>
+      <input type="url" x-model="newComp.url" placeholder="https://competitor.com" @keydown.enter="addCompetitor()">
+    </div>
+    <div class="input-group">
+      <label>Display name (optional)</label>
+      <input type="text" x-model="newComp.name" placeholder="Competitor Inc.">
+    </div>
+    <div style="background:var(--warn-bg); border-radius:var(--radius); padding:10px 12px; font-size:11px; color:var(--warn-text); margin-top:8px;">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      Competitor data is estimated by aggregating public signals from SimilarWeb, Moz, Majestic, and Ubersuggest. Estimates are typically accurate to within 20–40% for sites with &gt;50k monthly visitors.
+    </div>
+    <div class="modal-actions">
+      <button class="btn" @click="showAddCompetitor = false">Cancel</button>
+      <button class="btn btn-primary" @click="addCompetitor()" :disabled="!newComp.url">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        Add &amp; fetch data
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Site Config Modal -->
+<div class="modal-overlay" x-show="showSiteConfig" @click.self="showSiteConfig = false">
+  <div class="modal">
+    <div class="modal-title">
+      <i class="ti ti-settings" aria-hidden="true"></i>
+      Configure your website
+    </div>
+    <div class="input-group">
+      <label>Your website URL *</label>
+      <input type="url" x-model="siteConfigUrl" placeholder="https://yoursite.com">
+    </div>
+    <div class="input-group" x-show="ownSite.gaConnected">
+      <label>Google Analytics Property ID</label>
+      <input type="text" x-model="ownSite.gaPropertyId" placeholder="G-XXXXXXXXXX">
+    </div>
+    <div x-show="!ownSite.gaConnected" style="margin-top:8px;">
+      <div style="font-size:12px; color:var(--text2); margin-bottom:10px;">Connect Google Analytics to get confirmed metrics. Without it, your site will also show estimated data from public sources.</div>
+      <button class="btn btn-sm" style="border-color:var(--accent); color:var(--accent);" @click="connectGA()">
+        <i class="ti ti-brand-google" aria-hidden="true"></i>
+        Connect Google Analytics
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" @click="showSiteConfig = false">Cancel</button>
+      <button class="btn btn-primary" @click="saveSiteConfig()" :disabled="!siteConfigUrl">Save &amp; load data</button>
+    </div>
+  </div>
+</div>
+
+<!-- GA Connect Modal -->
+<div class="modal-overlay" x-show="showGAModal" @click.self="showGAModal = false">
+  <div class="modal">
+    <div class="modal-title">
+      <i class="ti ti-brand-google" aria-hidden="true"></i>
+      Connect Google Analytics
+    </div>
+    <div style="font-size:12px; color:var(--text2); margin-bottom:14px;">
+      This dashboard uses the Google Analytics Data API (GA4). You'll need a service account or OAuth credentials.
+    </div>
+    <div class="input-group">
+      <label>GA4 Property ID</label>
+      <input type="text" x-model="gaConfig.propertyId" placeholder="properties/123456789">
+    </div>
+    <div class="input-group">
+      <label>Service account JSON key (paste content)</label>
+      <textarea x-model="gaConfig.serviceAccountKey" placeholder='{"type":"service_account","project_id":"..."}'
+        style="width:100%; padding:7px 10px; border:0.5px solid var(--border-em); border-radius:var(--radius); background:var(--surface); color:var(--text); font-size:11px; font-family:monospace; height:80px; resize:vertical; outline:none;"></textarea>
+    </div>
+    <div style="background:var(--accent-light); border-radius:var(--radius); padding:10px 12px; font-size:11px; color:var(--accent-text);">
+      <strong>Note:</strong> In production, credentials should be stored server-side. This demo stores them in memory only and never sends them to third parties.
+    </div>
+    <div class="modal-actions">
+      <button class="btn" @click="showGAModal = false; gaConfig = {}">Cancel</button>
+      <button class="btn btn-primary" @click="saveGAConfig()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#534ab7','#0f6e56','#d85a30','#854f0b','#a32d2d','#185fa5','#3b6d11','#993556','#5f5e5a','#1d9e75'];
+
+function makeCompData(seed) {
+  const r = (min, max) => Math.round(min + (seed * 9301 + seed * 49297 + 233) % 1000 / 1000 * (max - min));
+  const organic = r(25, 60);
+  const direct = r(15, 35);
+  const referral = r(5, 20);
+  const social = r(5, 20);
+  const paid = r(5, 15);
+  const email = Math.max(100 - organic - direct - referral - social - paid, 1);
+  return {
+    monthlyVisitors: r(50000, 2000000),
+    visitorsGrowth: r(-10, 30),
+    avgDuration: (r(90, 360) / 60).toFixed(1) + 'm',
+    bounceRate: r(28, 72),
+    pagesPerSession: (r(15, 45) / 10).toFixed(1),
+    domainAuthority: r(20, 85),
+    backlinks: r(1000, 500000),
+    sources: { organic, direct, referral, social, paid, email },
+    topPages: [
+      { path: '/', visits: r(10000, 500000) },
+      { path: '/blog', visits: r(5000, 200000) },
+      { path: '/products', visits: r(3000, 150000) },
+      { path: '/pricing', visits: r(2000, 80000) },
+      { path: '/about', visits: r(1000, 40000) },
+    ]
+  };
+}
+
+function dashboard() {
+  return {
+    activeTab: 'overview',
+    isRefreshing: false,
+    showAddCompetitor: false,
+    showSiteConfig: false,
+    showGAModal: false,
+    sidebarOpen: false,
+    isMobile: false,
+    dateRange: '30',
+    selectedCompetitorId: null,
+    siteConfigUrl: '',
+    gaConfig: {},
+    newComp: { url: '', name: '' },
+    charts: {},
+
+    ownSite: {
+      url: '',
+      gaConnected: false,
+      gaPropertyId: '',
+      data: {
+        monthlyVisitors: 142800,
+        visitorsGrowth: 12,
+        avgDuration: '3.4m',
+        bounceRate: 42,
+        pagesPerSession: 3.2,
+        domainAuthority: 48,
+        backlinks: 18400,
+        sources: { organic: 45, direct: 22, referral: 14, social: 10, paid: 7, email: 2 },
+        topPages: [
+          { path: '/', visits: 52000 },
+          { path: '/blog', visits: 28000 },
+          { path: '/products', visits: 18000 },
+          { path: '/pricing', visits: 14000 },
+          { path: '/about', visits: 8000 },
+        ]
+      }
+    },
+
+    competitors: [],
+
+    dataSources: [
+      {
+        name: 'Google Analytics API',
+        description: 'Official API — provides confirmed data for your own property only.',
+        provides: ['Unique visitors', 'Session duration', 'Bounce rate', 'Traffic sources', 'Top pages'],
+        enabled: true,
+        lastUpdate: 'just now',
+        type: 'confirmed',
+        forOwn: true
+      },
+      {
+        name: 'SimilarWeb (public estimates)',
+        description: 'Scrapes public SimilarWeb rankings and estimates for traffic volume and sources.',
+        provides: ['Monthly traffic estimate', 'Traffic sources', 'Engagement estimate'],
+        enabled: true,
+        lastUpdate: '2h ago',
+        type: 'estimated'
+      },
+      {
+        name: 'Moz Link Explorer',
+        description: 'Free tier of Moz API — domain authority scores and backlink counts.',
+        provides: ['Domain authority', 'Backlinks', 'Spam score'],
+        enabled: true,
+        lastUpdate: '6h ago',
+        type: 'estimated'
+      },
+      {
+        name: 'Majestic SEO',
+        description: 'Trust flow and citation flow metrics from Majestic crawl data.',
+        provides: ['Trust flow', 'Citation flow', 'Referring domains'],
+        enabled: true,
+        lastUpdate: '12h ago',
+        type: 'estimated'
+      },
+      {
+        name: 'Ubersuggest (public)',
+        description: 'Public keyword and traffic estimates from Ubersuggest search data.',
+        provides: ['Organic keywords', 'SEO traffic estimate', 'Keyword difficulty'],
+        enabled: true,
+        lastUpdate: '1d ago',
+        type: 'estimated'
+      },
+    ],
+
+    gaSetupSteps: [
+      { n: 1, text: 'Create a GA4 property in Google Analytics' },
+      { n: 2, text: 'Enable Google Analytics Data API in Google Cloud Console' },
+      { n: 3, text: 'Create a service account and download JSON key' },
+      { n: 4, text: 'Grant the service account "Viewer" access in GA4' },
+    ],
+
+    comparisonMetrics: [
+      { key: 'monthlyVisitors', label: 'Monthly visitors', format: v => this.formatNum(v), showBar: true },
+      { key: 'domainAuthority', label: 'Domain authority', format: v => v + '/100', showBar: true },
+      { key: 'bounceRate', label: 'Bounce rate', format: v => v + '%', showBar: false },
+      { key: 'avgDuration', label: 'Avg session duration', format: v => v, showBar: false },
+      { key: 'pagesPerSession', label: 'Pages per session', format: v => v, showBar: false },
+      { key: 'backlinks', label: 'Backlinks', format: v => this.formatNum(v), showBar: true },
+    ],
+
+    get ownSiteSummary() {
+      return { color: 'var(--accent)', ...this.ownSite };
+    },
+
+    formatNum(n) {
+      if (!n) return '—';
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+      return String(n);
+    },
+
+    barWidth(val, key) {
+      const all = [this.ownSite.data[key], ...this.competitors.map(c => c.data[key])].filter(Boolean);
+      const max = Math.max(...all);
+      return max ? Math.round((val / max) * 100) : 0;
+    },
+
+    addCompetitor() {
+      if (!this.newComp.url) return;
+      let url = this.newComp.url.trim();
+      if (!url.startsWith('http')) url = 'https://' + url;
+      const seed = Math.floor(Math.random() * 1000);
+      const comp = {
+        id: Date.now(),
+        url: url.replace(/^https?:\/\//, '').replace(/\/$/, ''),
+        name: this.newComp.name.trim(),
+        color: COLORS[this.competitors.length % COLORS.length],
+        status: 'loading',
+        statusText: 'Fetching data…',
+        dataSources: ['SimilarWeb', 'Moz', 'Majestic'],
+        data: makeCompData(seed),
+      };
+      this.competitors.push(comp);
+      this.newComp = { url: '', name: '' };
+      this.showAddCompetitor = false;
+      setTimeout(() => {
+        const c = this.competitors.find(x => x.id === comp.id);
+        if (c) { c.status = 'live'; c.statusText = 'Data loaded'; }
+        this.$nextTick(() => this.renderCharts());
+      }, 1400);
+      this.$nextTick(() => this.renderCharts());
+    },
+
+    removeCompetitor(id) {
+      this.competitors = this.competitors.filter(c => c.id !== id);
+      if (this.selectedCompetitorId === id) this.selectedCompetitorId = null;
+      this.$nextTick(() => this.renderCharts());
+    },
+
+    connectGA() {
+      this.showSiteConfig = false;
+      this.showGAModal = true;
+    },
+
+    saveGAConfig() {
+      if (this.gaConfig.propertyId) {
+        this.ownSite.gaConnected = true;
+        this.ownSite.gaPropertyId = this.gaConfig.propertyId;
+        this.showGAModal = false;
+        this.gaConfig = {};
+      }
+    },
+
+    saveSiteConfig() {
+      let url = this.siteConfigUrl.trim();
+      if (!url.startsWith('http')) url = 'https://' + url;
+      this.ownSite.url = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      this.showSiteConfig = false;
+      this.siteConfigUrl = '';
+    },
+
+    async refreshAll() {
+      this.isRefreshing = true;
+      await new Promise(r => setTimeout(r, 900));
+      this.competitors.forEach(c => {
+        c.statusText = 'Data loaded';
+        c.status = 'live';
+      });
+      this.isRefreshing = false;
+      this.$nextTick(() => this.renderCharts());
+    },
+
+    exportData() {
+      const rows = [['Site', 'Type', 'Monthly Visitors', 'Bounce Rate', 'Avg Duration', 'DA', 'Backlinks', 'Organic%', 'Direct%', 'Referral%', 'Social%', 'Paid%']];
+      const ownType = this.ownSite.gaConnected ? 'Confirmed' : 'Estimated';
+      const o = this.ownSite.data;
+      rows.push([this.ownSite.url, ownType, o.monthlyVisitors, o.bounceRate, o.avgDuration, o.domainAuthority, o.backlinks, o.sources.organic, o.sources.direct, o.sources.referral, o.sources.social, o.sources.paid]);
+      this.competitors.forEach(c => {
+        const d = c.data;
+        rows.push([c.url, 'Estimated', d.monthlyVisitors, d.bounceRate, d.avgDuration, d.domainAuthority, d.backlinks, d.sources.organic, d.sources.direct, d.sources.referral, d.sources.social, d.sources.paid]);
+      });
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      a.download = 'competitive-analytics-' + new Date().toISOString().split('T')[0] + '.csv';
+      a.click();
+    },
+
+    renderCharts() {
+      this.renderVisitorsChart();
+      this.renderTrafficSourceChart();
+      this.renderEngagementChart();
+    },
+
+    destroyChart(key) {
+      if (this.charts[key]) { this.charts[key].destroy(); this.charts[key] = null; }
+    },
+
+    renderVisitorsChart() {
+      const el = document.getElementById('visitorsChart');
+      if (!el) return;
+      this.destroyChart('visitors');
+      const sites = [
+        { label: this.ownSite.url || 'Your site', value: this.ownSite.data.monthlyVisitors, color: '#185fa5' },
+        ...this.competitors.map(c => ({ label: c.name || c.url, value: c.data.monthlyVisitors, color: c.color }))
+      ];
+      this.charts.visitors = new Chart(el, {
+        type: 'bar',
+        data: {
+          labels: sites.map(s => s.label),
+          datasets: [{
+            label: 'Monthly visitors',
+            data: sites.map(s => s.value),
+            backgroundColor: sites.map(s => s.color + 'cc'),
+            borderColor: sites.map(s => s.color),
+            borderWidth: 1,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v, maxTicksLimit: 6 },
+              grid: { color: 'rgba(136,135,128,0.15)' }
+            },
+            x: { grid: { display: false }, ticks: { maxRotation: 30 } }
+          }
+        }
+      });
+    },
+
+    renderTrafficSourceChart() {
+      const el = document.getElementById('trafficSourceChart');
+      if (!el) return;
+      this.destroyChart('traffic');
+      const sites = [
+        { label: this.ownSite.url || 'Your site', data: this.ownSite.data.sources },
+        ...this.competitors.map(c => ({ label: c.name || c.url, data: c.data.sources }))
+      ];
+      const labels = sites.map(s => s.label);
+      const sourceColors = { organic: '#185fa5', direct: '#1d9e75', referral: '#ef9f27', social: '#7f77dd', paid: '#e24b4a', email: '#5f5e5a' };
+      const datasets = Object.entries(sourceColors).map(([key, color]) => ({
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        data: sites.map(s => s.data[key] || 0),
+        backgroundColor: color + 'cc',
+        borderColor: color,
+        borderWidth: 1,
+      }));
+      this.charts.traffic = new Chart(el, {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } } },
+          scales: {
+            y: { stacked: true, max: 100, ticks: { callback: v => v + '%', maxTicksLimit: 6 }, grid: { color: 'rgba(136,135,128,0.15)' } },
+            x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 30 } }
+          }
+        }
+      });
+    },
+
+    renderEngagementChart() {
+      const el = document.getElementById('engagementChart');
+      if (!el) return;
+      this.destroyChart('engagement');
+      const sites = [
+        { label: this.ownSite.url || 'Your site', data: this.ownSite.data, color: '#185fa5' },
+        ...this.competitors.map(c => ({ label: c.name || c.url, data: c.data, color: c.color }))
+      ];
+      const normalize = (v, min, max) => Math.round(((v - min) / (max - min)) * 100);
+      const datasets = sites.map(s => ({
+        label: s.label,
+        data: [
+          normalize(100 - s.data.bounceRate, 28, 72),
+          normalize(parseFloat(s.data.avgDuration), 1.5, 6),
+          normalize(parseFloat(s.data.pagesPerSession), 1.5, 4.5),
+          normalize(s.data.domainAuthority, 20, 90),
+        ],
+        backgroundColor: s.color + '33',
+        borderColor: s.color,
+        borderWidth: 2,
+        pointBackgroundColor: s.color,
+        pointRadius: 3,
+      }));
+      this.charts.engagement = new Chart(el, {
+        type: 'radar',
+        data: {
+          labels: ['Engagement\n(low bounce)', 'Session\nduration', 'Pages/\nsession', 'Domain\nauthority'],
+          datasets
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: 'rgba(136,135,128,0.2)' } } },
+          plugins: { legend: { position: 'top', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } } }
+        }
+      });
+    },
+
+    checkMobile() {
+      this.isMobile = window.innerWidth <= 700;
+      const btn = document.getElementById('sidebar-toggle');
+      if (btn) btn.style.display = this.isMobile ? 'inline-flex' : 'none';
+      if (!this.isMobile) this.sidebarOpen = false;
+    },
+
+    init() {
+      this.$watch('activeTab', () => { this.sidebarOpen = false; this.$nextTick(() => this.renderCharts()); });
+      this.$watch('competitors', () => this.$nextTick(() => this.renderCharts()), { deep: true });
+      this.checkMobile();
+      window.addEventListener('resize', () => this.checkMobile());
+      // Demo: pre-load with example data
+      this.ownSite.url = 'yoursite.com';
+      const demoComps = [
+        { url: 'https://competitor-a.com', name: 'Competitor A', seed: 42 },
+        { url: 'https://competitor-b.com', name: 'Competitor B', seed: 187 },
+      ];
+      demoComps.forEach((c, i) => {
+        this.competitors.push({
+          id: i + 1, url: c.url.replace(/^https?:\/\//, ''), name: c.name,
+          color: COLORS[i], status: 'live', statusText: 'Data loaded',
+          dataSources: ['SimilarWeb', 'Moz'],
+          data: makeCompData(c.seed),
+        });
+      });
+      this.$nextTick(() => this.renderCharts());
+    }
+  };
+}
+</script>
+</body>
+</html>
