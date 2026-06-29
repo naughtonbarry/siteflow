@@ -1219,7 +1219,7 @@ function siteflow(){
     },
     updateTaskStatus(id,status){
       const tasks=this.getData('tasks');const idx=tasks.findIndex(t=>t.id===id);
-      if(idx>-1){
+      if(idx>-1&&tasks[idx].status!==status){
         const t=tasks[idx];const from=t.status;t.status=status;
         t.history=Array.isArray(t.history)?t.history:[];
         t.history.push({action:'moved',fromStatus:from,toStatus:status,...this._actor(),at:new Date().toISOString()});
