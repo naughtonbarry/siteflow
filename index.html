@@ -1097,6 +1097,7 @@ function siteflow(){
 
     get projects(){void this._tick;return _storeGet('projects')},
     get users(){void this._tick;return _storeGet('users')},
+    get assignableMembers(){void this._tick;if(!this.currentProjectId)return[];return _storeGet('users').filter(u=>u.role!=='client'&&(u.role==='admin'||(u.projectIds||[]).includes(this.currentProjectId))).sort((a,b)=>a.name.localeCompare(b.name))},
     get invites(){void this._tick;return _storeGet('invites')},
     get pendingInvites(){return this.invites.filter(i=>!i.used)},
     get currentProject(){return this.projects.find(p=>p.id===this.currentProjectId)||null},
