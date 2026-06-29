@@ -19,10 +19,20 @@ A single-file project-workflow web app for construction / fit-out / relocation p
 
 ## Data model (important)
 
-Data lives in a module-level `_store` object, mirrored to `localStorage` under the `sf_` key prefix. It survives even when localStorage is blocked.
+In memory, data lives in a module-level `_store` object. `getData(key)` reads it, `saveData(key, arr)` writes it (and bumps `this._tick`). Keys: `projects`, `tasks`, `users`, `invites`, `accessLog`, `announcements`, `moodboardItems`.
 
-- **Read:** `getData(key)` → returns `_storeGet(key)` (an array). Keys: `projects`, `tasks`, `users`, `invites`, `accessLog`, `announcements`, `moodboardItems`.
-- **Write:** `saveData(key, arr)` → calls `_storeSet` and bumps `this._tick`.
+**Persistence is Supabase first, not localStorage.** This is the #1 gotcha — read it before adding fields:
+
+- On load, `_storeInit()` populates `_store` **from Supabase** (project `jxziiznrgtzoroatauul`, anon key in the file). `localStorage` (`sf_` prefix) is only a fallback for keys *not* backed by a Supabase table — i.e. `moodboardItems` (no table) persists via localStorage; everything in `_TABLE` (`users`, `projects`, `tasks`, `accessLog`, `announcements`, `invites`) persists via Supabase. **For those, localStorage writes are ignored on reload.**
+- `saveData` writes to `_store`, localStorage, AND upserts to Supabase via `_toRow` (camelCase→snake_case using the `_TO_DB` maps).
+
+### Adding a field to a Supabase-backed entity (e.g. tasks)
+
+You must do BOTH or the field silently vanishes on reload (the upsert fails with "Could not find the 'X' column", error is swallowed):
+1. Add the mapping to `_TO_DB.<entity>` — e.g. `assigneeId:'assignee_id'`. Unmapped fields are sent as-is (camelCase) and rejected by Postgres.
+2. Add the column in Supabase (SQL editor): `alter table sf_tasks add column if not exists assignee_id text;` (use `jsonb` for arrays/objects like `history`). The anon key can't run DDL — the user must do this in the dashboard.
+
+Verify with `preview_console_logs` (level error) — `SB upsert: Could not find the 'X' column` means a mapping/column is missing.
 
 ### Reactivity rule — do not remove `void this._tick`
 
@@ -37,6 +47,8 @@ Store-backed getters (`get projects()`, `get projectTasks()`, etc.) read from pl
 ## Features
 
 Dashboard (stats, progress, latest updates, my tasks) · Kanban task board (To Do / In Progress / Done, role-filtered) · Site Access Register (sign in/out, induction, today's log) · Updates/announcements feed (per-role visibility) · Moodboard (add images by URL or upload, masonry grid, lightbox) · Admin: project management, user invites, user removal.
+
+**Task ownership & history:** tasks have `assigneeId` (a specific person, shown as an avatar chip on each board card and an "Assigned to" dropdown in the modal — `assignableMembers` lists project members) plus `assignedRole` (kept for visibility filtering; auto-synced from the assignee's role via `onAssigneeChange`). Each task carries a `history` array recording `created` / `assigned` / `moved` events with the actor (`_actor()` = current user) and timestamp; rendered as the "Activity" timeline in the task modal. `myTasks` prefers personal assignment over role.
 
 **Pre-loaded demo project:** Mater Hospital Department Relocation — 3 departments (Radiology, Cardiology, Outpatients) moving to an open-plan office in the Freight Building. ~12 tasks, sample access entries, 3 announcements.
 
