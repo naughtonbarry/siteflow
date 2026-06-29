@@ -309,7 +309,15 @@
       <div x-show="currentTab === 'tasks'">
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center gap-3">
-            <div class="text-sm text-slate-500"><span class="font-medium text-slate-900" x-text="visibleTasks.length"></span> tasks</div>
+            <div class="text-sm text-slate-500"><span class="font-medium text-slate-900" x-text="filteredTasks.length"></span> tasks</div>
+            <select x-model="taskFilter" class="border border-slate-200 rounded-lg pl-2.5 pr-7 py-1.5 text-sm text-slate-700 bg-white transition-colors cursor-pointer">
+              <option value="">All members</option>
+              <template x-for="m in assignableMembers" :key="m.id">
+                <option :value="m.id" x-text="m.name"></option>
+              </template>
+              <option value="__unassigned">Unassigned</option>
+            </select>
+            <button x-show="taskFilter" @click="taskFilter=''" class="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors">Clear</button>
           </div>
           <button x-show="canEditTasks" @click="openNewTask()"
                   class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
