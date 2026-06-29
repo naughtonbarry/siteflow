@@ -761,6 +761,16 @@
                   class="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-300 resize-none transition-colors"
                   :class="!canEditTasks ? 'bg-slate-50' : ''"></textarea>
       </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Assigned to</label>
+        <select x-model="taskModal.assigneeId" @change="onAssigneeChange()" :disabled="!canEditTasks"
+                class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 transition-colors">
+          <option value="">Unassigned</option>
+          <template x-for="m in assignableMembers" :key="m.id">
+            <option :value="m.id" x-text="m.name + ' · ' + (roleLabels[m.role]||m.role)"></option>
+          </template>
+        </select>
+      </div>
       <div class="grid grid-cols-3 gap-3">
         <div>
           <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Priority</label>
