@@ -1107,7 +1107,7 @@ function siteflow(){
     get todoTasks(){return this.visibleTasks.filter(t=>t.status==='todo')},
     get inProgressTasks(){return this.visibleTasks.filter(t=>t.status==='in_progress')},
     get doneTasks(){return this.visibleTasks.filter(t=>t.status==='done')},
-    get myTasks(){if(!this.user)return[];const base=this.user.role==='admin'?this.projectTasks:this.projectTasks.filter(t=>t.assignedRole===this.user.role);return base.filter(t=>t.status!=='done')},
+    get myTasks(){if(!this.user)return[];const base=this.user.role==='admin'?this.projectTasks:this.projectTasks.filter(t=>t.assigneeId===this.user.id||(!t.assigneeId&&t.assignedRole===this.user.role));return base.filter(t=>t.status!=='done')},
     get canEditTasks(){return this.user&&['admin','team'].includes(this.user.role)},
     get allAccess(){void this._tick;if(!this.currentProjectId)return[];return _storeGet('accessLog').filter(a=>a.projectId===this.currentProjectId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))},
     get projectMoodboardItems(){void this._tick;if(!this.currentProjectId)return[];return _storeGet('moodboardItems').filter(m=>m.projectId===this.currentProjectId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))},
