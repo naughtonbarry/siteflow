@@ -1153,16 +1153,38 @@ function siteflow(){
 
     logout(){this.user=null;try{localStorage.removeItem('sf_currentUser')}catch(e){}this.loginEmail='';this.loginPassword='';this.loginError='';this.currentTab='dashboard'},
 
-    openNewTask(){this.taskModal={status:'todo',priority:'medium',assignedRole:'team',projectId:this.currentProjectId};this.showTaskModal=true},
+    openNewTask(){this.taskModal={status:'todo',priority:'medium',assignedRole:'team',assigneeId:'',projectId:this.currentProjectId};this.showTaskModal=true},
     viewTask(task){this.taskModal={...task};this.showTaskModal=true},
+    onAssigneeChange(){const u=this.assignableMembers.find(m=>m.id===this.taskModal.assigneeId);if(u&&u.role!=='admin'&&u.role!=='client')this.taskModal.assignedRole=u.role},
+    _actor(){return{userId:this.user?this.user.id:'',userName:this.user?this.user.name:'Someone'}},
     saveTask(){
       if(!this.taskModal.title){alert('Please enter a task title.');return}
-      const tasks=this.getData('tasks');
-      if(this.taskModal.id){const idx=tasks.findIndex(t=>t.id===this.taskModal.id);if(idx>-1)tasks[idx]={...this.taskModal}}
-      else tasks.push({...this.taskModal,id:'task-'+Date.now(),projectId:this.currentProjectId,createdAt:new Date().toISOString()});
+      const tasks=this.getData('tasks');const now=new Date().toISOString();const who=this._actor();
+      if(this.taskModal.id){
+        const idx=tasks.findIndex(t=>t.id===this.taskModal.id);
+        if(idx>-1){
+          const prev=tasks[idx];const updated={...this.taskModal};
+          updated.history=Array.isArray(prev.history)?[...prev.history]:[];
+          if((prev.assigneeId||'')!==(updated.assigneeId||'')){updated.history.push({action:'assigned',...who,at:now,toName:this.userName(updated.assigneeId)||'Unassigned'})}
+          tasks[idx]=updated;
+        }
+      }else{
+        const t={...this.taskModal,id:'task-'+Date.now(),projectId:this.currentProjectId,createdAt:now};
+        t.history=[{action:'created',...who,at:now}];
+        if(t.assigneeId)t.history.push({action:'assigned',...who,at:now,toName:this.userName(t.assigneeId)});
+        tasks.push(t);
+      }
       this.saveData('tasks',tasks);this.showTaskModal=false;
     },
-    updateTaskStatus(id,status){const tasks=this.getData('tasks');const idx=tasks.findIndex(t=>t.id===id);if(idx>-1){tasks[idx].status=status;this.saveData('tasks',tasks)}},
+    updateTaskStatus(id,status){
+      const tasks=this.getData('tasks');const idx=tasks.findIndex(t=>t.id===id);
+      if(idx>-1){
+        const t=tasks[idx];const from=t.status;t.status=status;
+        t.history=Array.isArray(t.history)?t.history:[];
+        t.history.push({action:'moved',fromStatus:from,toStatus:status,...this._actor(),at:new Date().toISOString()});
+        this.saveData('tasks',tasks);
+      }
+    },
 
     openAccessForm(){this.accessModal={induction:false};if(this.user){this.accessModal.name=this.user.name;this.accessModal.role=this.roleLabels[this.user.role]||''}this.showAccessModal=true},
     saveAccess(){
