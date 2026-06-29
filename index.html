@@ -1292,7 +1292,12 @@ ${this.user?this.user.name:'The project team'}`
 
     today(){return new Date().toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'long',year:'numeric'})},
     formatDate(iso){if(!iso)return'';return new Date(iso).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'})},
-    isOverdue(d){if(!d)return false;return new Date(d)<new Date(new Date().toDateString())}
+    formatDateTime(iso){if(!iso)return'';return new Date(iso).toLocaleString('en-IE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})},
+    isOverdue(d){if(!d)return false;return new Date(d)<new Date(new Date().toDateString())},
+    userName(id){if(!id)return'';const u=_storeGet('users').find(x=>x.id===id);return u?u.name:''},
+    assigneeName(task){return this.userName(task&&task.assigneeId)||'Unassigned'},
+    initials(name){if(!name)return'?';return name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()},
+    historyLabel(h){const st={todo:'To Do',in_progress:'In Progress',done:'Done'};if(h.action==='created')return'created this task';if(h.action==='assigned')return'assigned to '+(h.toName||'Unassigned');if(h.action==='moved')return'moved '+(st[h.fromStatus]||h.fromStatus)+' → '+(st[h.toStatus]||h.toStatus);return h.action}
   }
 }
 </script>
