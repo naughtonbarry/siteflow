@@ -325,7 +325,7 @@
 
       <!-- ===== TASK BOARD ===== -->
       <div x-show="currentTab === 'tasks'">
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center justify-between gap-3 flex-wrap mb-6">
           <div class="flex items-center gap-3">
             <div class="text-sm text-slate-500"><span class="font-medium text-slate-900" x-text="filteredTasks.length"></span> tasks</div>
             <select x-model="taskFilter" class="border border-slate-200 rounded-lg pl-2.5 pr-7 py-1.5 text-sm text-slate-700 bg-white transition-colors cursor-pointer">
