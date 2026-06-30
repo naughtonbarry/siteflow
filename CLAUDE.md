@@ -50,6 +50,8 @@ Store-backed getters (`get projects()`, `get projectTasks()`, etc.) read from pl
 
 Dashboard (stats, progress, latest updates, my tasks) · Kanban task board (To Do / In Progress / Done, role-filtered) · Site Access Register (sign in/out, induction, today's log) · Updates/announcements feed (per-role visibility) · Moodboard (add images by URL or upload, masonry grid, lightbox) · Admin: project management, user invites, user removal.
 
+**Mobile-responsive:** below the Tailwind `md` breakpoint the `w-56` sidebar becomes a slide-in drawer toggled by `sidebarOpen` (hamburger in the header, dimmed backdrop, closes on nav-tap); the main column drops its `md:ml-56` offset and padding shrinks (`p-4 md:p-8`). Wide tables sit in `overflow-x-auto` with a `min-w-[620px]`. Don't remove the `md:` prefixes or the desktop layout collapses.
+
 **Task ownership & history:** tasks have `assigneeId` (a specific person, shown as an avatar chip on each board card and an "Assigned to" dropdown in the modal — `assignableMembers` lists project members) plus `assignedRole` (kept for visibility filtering; auto-synced from the assignee's role via `onAssigneeChange`). Each task carries a `history` array recording `created` / `assigned` / `moved` events with the actor (`_actor()` = current user) and timestamp; rendered as the "Activity" timeline in the task modal. `myTasks` prefers personal assignment over role.
 
 **Pre-loaded demo project:** Mater Hospital Department Relocation — 3 departments (Radiology, Cardiology, Outpatients) moving to an open-plan office in the Freight Building. ~12 tasks, sample access entries, 3 announcements.
