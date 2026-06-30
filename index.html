@@ -1349,6 +1349,144 @@ ${this.user?this.user.name:'The project team'}`
     },
     selectProject(id){this.currentProjectId=id;this.currentTab='dashboard'},
 
+    // ── Training Records ──
+    trInitData(){
+      try{
+        const s=localStorage.getItem('tr_staff');const r=localStorage.getItem('tr_records');
+        this.trStaff=s?JSON.parse(s):[];this.trRecords=r?JSON.parse(r):[];
+      }catch(e){this.trStaff=[];this.trRecords=[];}
+      if(this.trStaff.length===0)this.trSeedDemo();
+    },
+    trSave(){
+      try{localStorage.setItem('tr_staff',JSON.stringify(this.trStaff));localStorage.setItem('tr_records',JSON.stringify(this.trRecords));}catch(e){}
+    },
+    trSeedDemo(){
+      const sid=n=>'staff_demo_'+n;
+      this.trStaff=[
+        {id:sid(1),name:'Liam Murphy',role:'Site Supervisor',department:'Operations',startDate:'2019-04-08'},
+        {id:sid(2),name:'Aoife Brennan',role:'HR Manager',department:'HR',startDate:'2018-09-03'},
+        {id:sid(3),name:'Ciarán Kelly',role:'Forklift Operator',department:'Warehouse',startDate:'2021-02-14'},
+        {id:sid(4),name:"Sinéad O'Brien",role:'Office Administrator',department:'Admin',startDate:'2022-06-20'},
+        {id:sid(5),name:'Declan Walsh',role:'Electrician',department:'Maintenance',startDate:'2020-11-01'},
+        {id:sid(6),name:'Niamh Fitzpatrick',role:'Health & Safety Officer',department:'H&S',startDate:'2017-03-15'},
+        {id:sid(7),name:'Patrick Doyle',role:'Driver',department:'Logistics',startDate:'2023-07-10'},
+        {id:sid(8),name:'Roisín McCarthy',role:'Warehouse Operative',department:'Warehouse',startDate:'2024-01-22'},
+        {id:sid(9),name:'Seán Gallagher',role:'Maintenance Technician',department:'Maintenance',startDate:'2021-08-30'},
+        {id:sid(10),name:'Caoimhe Ryan',role:'Accounts Assistant',department:'Finance',startDate:'2022-03-07'},
+        {id:sid(11),name:'Eoin Burke',role:'Warehouse Operative',department:'Warehouse',startDate:'2023-11-14'},
+        {id:sid(12),name:'Fiona Connolly',role:'Receptionist',department:'Admin',startDate:'2020-05-19'},
+      ];
+      const r=(id,staffId,sname,course,provider,completed,expiry,notes)=>({id,staffId,staffName:sname,course,provider,dateCompleted:completed,expiryDate:expiry,notes});
+      this.trRecords=[
+        r('rd01',sid(1),'Liam Murphy','First Aid at Work (3-day)','Red Cross Ireland','2024-03-10','2027-03-10','Cert #FA-2024-091'),
+        r('rd02',sid(1),'Liam Murphy','Manual Handling','SafeWork Training','2025-01-15','2026-08-15','Cert #MH-2025-003'),
+        r('rd03',sid(1),'Liam Murphy','Working at Height','Heights Safety Ltd','2023-06-20','2026-06-20','Cert #WH-2023-044'),
+        r('rd04',sid(1),'Liam Murphy','Site Induction','Internal','2019-04-08','','Completed on start date'),
+        r('rd05',sid(2),'Aoife Brennan','First Aid Responder','Order of Malta','2023-11-05','2026-11-05','Cert #FAR-2023-212'),
+        r('rd06',sid(2),'Aoife Brennan','Manual Handling','SafeWork Training','2024-09-18','2026-06-10','Cert #MH-2024-088'),
+        r('rd07',sid(2),'Aoife Brennan','GDPR Awareness','DataCompliance.ie','2024-05-22','','No expiry — log annually'),
+        r('rd08',sid(2),'Aoife Brennan','Dignity & Respect at Work','HR Skillnet','2023-02-14','','Completed online'),
+        r('rd09',sid(3),'Ciarán Kelly','Forklift Operator Licence (FLT)','NPORS Ireland','2022-05-03','2027-05-03','Licence #NP-55391'),
+        r('rd10',sid(3),'Ciarán Kelly','Manual Handling','SafeWork Training','2025-02-20','2027-02-20','Cert #MH-2025-017'),
+        r('rd11',sid(3),'Ciarán Kelly','Fire Safety Awareness','FireSafe Ltd','2024-07-11','2026-07-11','Cert #FSA-2024-055'),
+        r('rd12',sid(3),'Ciarán Kelly','Site Induction','Internal','2021-02-14','','Completed on start date'),
+        r('rd13',sid(4),"Sinéad O'Brien",'Manual Handling','SafeWork Training','2024-04-09','2026-04-09','Cert #MH-2024-031'),
+        r('rd14',sid(4),"Sinéad O'Brien",'GDPR Awareness','DataCompliance.ie','2023-10-01','','Completed online'),
+        r('rd15',sid(4),"Sinéad O'Brien",'Display Screen Equipment (DSE)','H&S Training Centre','2022-03-15','2025-03-15','Cert #DSE-2022-008'),
+        r('rd16',sid(5),'Declan Walsh','Safe Pass','SOLAS','2023-08-22','2026-08-22','Safe Pass #SP-339821'),
+        r('rd17',sid(5),'Declan Walsh','Electrical Safety (17th Ed.)','City & Guilds','2021-11-30','2026-11-30','Cert #EL-2021-174'),
+        r('rd18',sid(5),'Declan Walsh','Manual Handling','SafeWork Training','2024-06-05','2026-06-05','Cert #MH-2024-060'),
+        r('rd19',sid(5),'Declan Walsh','Working at Height','Heights Safety Ltd','2024-01-17','2027-01-17','Cert #WH-2024-011'),
+        r('rd20',sid(6),'Niamh Fitzpatrick','IOSH Managing Safely','IOSH Ireland','2020-09-14','','Full qualification — no expiry'),
+        r('rd21',sid(6),'Niamh Fitzpatrick','First Aid at Work (3-day)','Red Cross Ireland','2023-04-26','2026-04-26','Cert #FA-2023-044'),
+        r('rd22',sid(6),'Niamh Fitzpatrick','Fire Warden Training','FireSafe Ltd','2024-10-08','2026-08-01','Cert #FW-2024-019'),
+        r('rd23',sid(6),'Niamh Fitzpatrick','Abrasive Wheels','H&S Training Centre','2022-07-19','2025-07-19','Cert #AW-2022-033'),
+        r('rd24',sid(7),'Patrick Doyle','Driver CPC (Certificate)','RSA Ireland','2023-07-10','2028-07-10','CPC Card #IE-20233847'),
+        r('rd25',sid(7),'Patrick Doyle','Manual Handling','SafeWork Training','2024-11-12','2026-11-12','Cert #MH-2024-104'),
+        r('rd26',sid(7),'Patrick Doyle','Safe Pass','SOLAS','2024-03-05','2027-03-05','Safe Pass #SP-441092'),
+        r('rd27',sid(8),'Roisín McCarthy','Site Induction','Internal','2024-01-22','','Completed on start date'),
+        r('rd28',sid(8),'Roisín McCarthy','Manual Handling','SafeWork Training','2024-02-14','2026-02-14','Cert #MH-2024-015'),
+        r('rd29',sid(8),'Roisín McCarthy','Fire Safety Awareness','FireSafe Ltd','2024-05-30','2026-05-30','Cert #FSA-2024-041'),
+        r('rd30',sid(9),'Seán Gallagher','Safe Pass','SOLAS','2022-10-03','2025-10-03','Safe Pass #SP-298741'),
+        r('rd31',sid(9),'Seán Gallagher','Manual Handling','SafeWork Training','2023-05-16','2025-05-16','Cert #MH-2023-049'),
+        r('rd32',sid(9),'Seán Gallagher','Working at Height','Heights Safety Ltd','2024-08-27','2027-08-27','Cert #WH-2024-088'),
+        r('rd33',sid(9),'Seán Gallagher','Abrasive Wheels','H&S Training Centre','2023-12-11','2026-12-11','Cert #AW-2023-077'),
+        r('rd34',sid(10),'Caoimhe Ryan','Manual Handling','SafeWork Training','2024-03-20','2026-03-20','Cert #MH-2024-028'),
+        r('rd35',sid(10),'Caoimhe Ryan','GDPR Awareness','DataCompliance.ie','2024-01-10','','Completed online'),
+        r('rd36',sid(10),'Caoimhe Ryan','Display Screen Equipment (DSE)','H&S Training Centre','2024-03-20','2027-03-20','Cert #DSE-2024-019'),
+        r('rd37',sid(11),'Eoin Burke','Site Induction','Internal','2023-11-14','','Completed on start date'),
+        r('rd38',sid(11),'Eoin Burke','Manual Handling','SafeWork Training','2023-12-05','2025-12-05','Cert #MH-2023-098'),
+        r('rd39',sid(11),'Eoin Burke','Fire Safety Awareness','FireSafe Ltd','2024-02-28','2026-02-28','Cert #FSA-2024-009'),
+        r('rd40',sid(12),'Fiona Connolly','First Aid Responder','Order of Malta','2022-09-01','2025-09-01','Cert #FAR-2022-108'),
+        r('rd41',sid(12),'Fiona Connolly','Manual Handling','SafeWork Training','2024-08-14','2026-08-14','Cert #MH-2024-079'),
+        r('rd42',sid(12),'Fiona Connolly','GDPR Awareness','DataCompliance.ie','2023-04-03','','Completed online'),
+      ];
+      this.trSave();
+    },
+    trGetStatus(rec){
+      if(!rec.expiryDate)return'N/A';
+      const today=new Date();today.setHours(0,0,0,0);
+      const exp=new Date(rec.expiryDate);
+      if(exp<today)return'Expired';
+      const soon=new Date(today);soon.setDate(soon.getDate()+60);
+      return exp<=soon?'Expiring Soon':'Valid';
+    },
+    trStatusClass(rec){
+      return{Expired:'bg-red-100 text-red-700','Expiring Soon':'bg-amber-100 text-amber-700',Valid:'bg-green-100 text-green-700','N/A':'bg-slate-100 text-slate-500'}[this.trGetStatus(rec)]||'bg-slate-100 text-slate-500';
+    },
+    trSummaryCards(){
+      return[
+        {label:'Expired',count:this.trRecords.filter(r=>this.trGetStatus(r)==='Expired').length,bg:'bg-red-50',text:'text-red-600',muted:'text-red-400'},
+        {label:'Expiring Soon',count:this.trRecords.filter(r=>this.trGetStatus(r)==='Expiring Soon').length,bg:'bg-amber-50',text:'text-amber-600',muted:'text-amber-400'},
+        {label:'Valid',count:this.trRecords.filter(r=>this.trGetStatus(r)==='Valid').length,bg:'bg-emerald-50',text:'text-emerald-600',muted:'text-emerald-400'},
+        {label:'Total Records',count:this.trRecords.length,bg:'bg-indigo-50',text:'text-indigo-600',muted:'text-indigo-400'},
+      ];
+    },
+    trFilteredDash(){
+      return this.trRecords
+        .filter(r=>!this.trDashFilter||this.trGetStatus(r)===this.trDashFilter)
+        .sort((a,b)=>{const o={Expired:0,'Expiring Soon':1,Valid:2,'N/A':3};return o[this.trGetStatus(a)]-o[this.trGetStatus(b)];});
+    },
+    trFilteredRecords(){
+      const q=this.trRecordSearch.toLowerCase();
+      return this.trRecords.filter(r=>!q||r.staffName.toLowerCase().includes(q)||r.course.toLowerCase().includes(q));
+    },
+    trRecordsForStaff(id){return this.trRecords.filter(r=>r.staffId===id);},
+    trFmtDate(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;},
+    openTrStaffModal(s=null){this.trStaffModal={open:true,editing:!!s,form:s?{...s}:{name:'',role:'',department:'',startDate:''},error:''};},
+    saveTrStaff(){
+      const f=this.trStaffModal.form;
+      if(!f.name.trim()){this.trStaffModal.error='Name is required.';return;}
+      if(this.trStaffModal.editing){
+        const i=this.trStaff.findIndex(s=>s.id===f.id);this.trStaff[i]={...f};
+        this.trRecords=this.trRecords.map(r=>r.staffId===f.id?{...r,staffName:f.name}:r);
+      }else{
+        this.trStaff.push({...f,id:'staff_'+Date.now()});
+      }
+      this.trSave();this.trStaffModal.open=false;
+    },
+    deleteTrStaff(id){
+      if(!confirm('Delete this staff member? Their training records will also be removed.'))return;
+      this.trStaff=this.trStaff.filter(s=>s.id!==id);
+      this.trRecords=this.trRecords.filter(r=>r.staffId!==id);
+      this.trSave();
+    },
+    openTrRecordModal(r=null){this.trRecordModal={open:true,editing:!!r,form:r?{...r}:{staffId:'',staffName:'',course:'',provider:'',dateCompleted:'',expiryDate:'',notes:''},error:''};},
+    onTrStaffChange(){const s=this.trStaff.find(s=>s.id===this.trRecordModal.form.staffId);this.trRecordModal.form.staffName=s?s.name:'';},
+    saveTrRecord(){
+      const f=this.trRecordModal.form;
+      if(!f.staffId){this.trRecordModal.error='Please select a staff member.';return;}
+      if(!f.course.trim()){this.trRecordModal.error='Course name is required.';return;}
+      if(!f.dateCompleted){this.trRecordModal.error='Completion date is required.';return;}
+      if(this.trRecordModal.editing){const i=this.trRecords.findIndex(r=>r.id===f.id);this.trRecords[i]={...f};}
+      else{this.trRecords.push({...f,id:'rec_'+Date.now()});}
+      this.trSave();this.trRecordModal.open=false;
+    },
+    deleteTrRecord(id){
+      if(!confirm('Delete this training record?'))return;
+      this.trRecords=this.trRecords.filter(r=>r.id!==id);this.trSave();
+    },
+
     getData(k){return _storeGet(k)},
     saveData(k,d){_storeSet(k,d);this._tick++},
     async resetAllData(){
