@@ -31,8 +31,9 @@ python3 -m http.server 5180
 - `src/*.jsx` — one module per file. Each is an IIFE that reads its
   dependencies off the global `VR` namespace and writes its export(s) back
   (e.g. `VR.Inbox = Inbox`). Load order (set in `index.html`):
-  `data → format → ui → ClipPlayer → Recorder → AnswerPanel → EnquiryCard
-  → Inbox → CustomerView → App`. `App.jsx` is last and mounts to `#root`.
+  `data → format → ui → ClipPlayer → Recorder → ClipLibrary → AnswerPanel
+  → EnquiryCard → Inbox → CustomerView → App`. `App.jsx` is last and mounts
+  to `#root`.
 
 ### Why the `VR` namespace and not ES modules
 No bundler here, and plain (non-module) `<script>`s share one global lexical
@@ -57,11 +58,18 @@ a faked piece look real.
 1. ~~**Refactor** the single-file `App.jsx` into per-component files.~~ ✅ Done —
    split into `src/*.jsx` IIFE modules over the `VR` namespace, no behaviour
    change.
-2. **Saved-clips library** — record canned answers to common questions (fabric
-   care, dimensions, lead times) once and reuse them, mixing canned + personal
-   clips per enquiry. **Highest-value next feature → this is now next.**
-3. **Real SMS/WhatsApp delivery** — the first true product priority. Needs a
-   backend + a messaging provider. Do **not** start unprompted; ask first.
+2. ~~**Saved-clips library**~~ ✅ Done — an enquiry answer is now a `clips`
+   array; retailers attach canned clips from a `savedClips` store or record
+   personal ones and "Save to library". Still simulated/in-memory.
+3. **Real SMS/WhatsApp delivery** — the first true product priority, and the
+   next step. Needs a backend + a messaging provider. Do **not** start
+   unprompted; ask first.
+
+## Data model note (answers)
+An enquiry's answer is `enquiry.clips` (ordered array), not a single clip.
+Each clip: `{ id, title?, sourceClipId?, url|null, simulated?, durationSec }`.
+`sourceClipId` is set when the clip came from (or was saved to) the library.
+`App.setClips` keeps `enquiry.status` in sync (`answered` iff clips exist).
 
 ## Known gaps / flagged bugs
 - **Object-URL leak** (`Recorder`): recorded-clip object URLs are never

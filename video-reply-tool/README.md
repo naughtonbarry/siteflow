@@ -55,9 +55,8 @@ README.md       this file
 
 ## Roadmap
 
-1. **Refactor** `src/App.jsx` into per-component files — no behaviour change.
-2. **Saved-clips library** — record canned answers to common questions (fabric
-   care, dimensions, lead times) once and reuse them, mixing canned + personal
-   clips per enquiry. *Highest-value next feature.*
-3. **Real SMS/WhatsApp delivery** — the first true product step; needs a backend
-   and a messaging provider.
+1. ~~Refactor `src/App.jsx` into per-component files~~ — ✅ done.
+2. ~~Saved-clips library~~ — ✅ done. Record canned answers once and reuse them,
+   mixing canned + personal clips per enquiry (still simulated/in-memory).
+3. **Real SMS/WhatsApp delivery** — the next step; needs a backend and a
+   messaging provider.
