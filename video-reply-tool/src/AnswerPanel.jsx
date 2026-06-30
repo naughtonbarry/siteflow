@@ -1,8 +1,89 @@
-/* Record + send for a single enquiry. An answer is an ordered list of clips. */
+/* Record + send for a single enquiry. An answer is an ordered list of clips,
+ * each either freshly recorded or attached from the saved-clips library. */
 (function () {
-  const { Avatar, ChannelTag, StatusBadge, DemoNote, Recorder, ClipPlayer, CHANNELS } = VR;
+  const { useState } = React;
+  const { Avatar, ChannelTag, StatusBadge, DemoNote, Recorder, ClipPlayer, ClipLibrary, CHANNELS } = VR;
 
-  function AnswerPanel({ enquiry, onRecordClip, onRemoveClip, onSend, onPreviewCustomer }) {
+  // One attached clip, with remove + (for personal clips) save-to-library.
+  function AttachedClip({ clip, locked, onRemove, onSave }) {
+    const [naming, setNaming] = useState(false);
+    const [title, setTitle] = useState("");
+    const inLibrary = Boolean(clip.sourceClipId);
+
+    return (
+      <div>
+        {clip.title && (
+          <p className="mb-1 text-xs font-medium text-stone-500">{clip.title}</p>
+        )}
+        <ClipPlayer clip={clip} />
+        {!locked && (
+          <div className="mt-1.5 flex items-center gap-3">
+            {inLibrary ? (
+              <span className="text-xs text-green-600">✓ In library</span>
+            ) : (
+              !naming && (
+                <button
+                  onClick={() => setNaming(true)}
+                  className="text-xs font-medium text-stone-500 hover:text-stone-700"
+                >
+                  ＋ Save to library
+                </button>
+              )
+            )}
+            <button
+              onClick={onRemove}
+              className="ml-auto text-xs text-red-500 hover:text-red-600"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+        {naming && (
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Name this clip (e.g. Fabric care)"
+              className="min-w-0 flex-1 rounded-md border border-stone-300 px-2 py-1 text-xs focus:border-stone-500 focus:outline-none"
+            />
+            <button
+              disabled={!title.trim()}
+              onClick={() => {
+                onSave(title.trim());
+                setNaming(false);
+                setTitle("");
+              }}
+              className="shrink-0 rounded-md bg-stone-800 px-3 py-1 text-xs font-medium text-white disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setNaming(false);
+                setTitle("");
+              }}
+              className="shrink-0 text-xs text-stone-500"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function AnswerPanel({
+    enquiry,
+    savedClips,
+    onRecordClip,
+    onAttachSaved,
+    onRemoveClip,
+    onSaveToLibrary,
+    onSend,
+    onPreviewCustomer,
+  }) {
+    const [tab, setTab] = useState("record"); // record | library
     const clips = enquiry.clips || [];
 
     return (
@@ -42,22 +123,13 @@
               </h3>
               <div className="space-y-4">
                 {clips.map((c) => (
-                  <div key={c.id}>
-                    {c.title && (
-                      <p className="mb-1 text-xs font-medium text-stone-500">{c.title}</p>
-                    )}
-                    <ClipPlayer clip={c} />
-                    {!enquiry.sent && (
-                      <div className="mt-1.5 flex">
-                        <button
-                          onClick={() => onRemoveClip(enquiry.id, c.id)}
-                          className="ml-auto text-xs text-red-500 hover:text-red-600"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <AttachedClip
+                    key={c.id}
+                    clip={c}
+                    locked={enquiry.sent}
+                    onRemove={() => onRemoveClip(enquiry.id, c.id)}
+                    onSave={(title) => onSaveToLibrary(enquiry.id, c, title)}
+                  />
                 ))}
               </div>
             </div>
@@ -65,10 +137,39 @@
 
           {!enquiry.sent ? (
             <>
-              <h3 className="mb-3 text-sm font-semibold text-stone-700">
-                {clips.length ? "Add another clip" : "Record your video answer"}
-              </h3>
-              <Recorder onClipReady={(clip) => onRecordClip(enquiry.id, clip)} />
+              <h3 className="mb-3 text-sm font-semibold text-stone-700">Add a clip</h3>
+              <div className="rounded-xl border border-stone-200 p-4">
+                <div className="mb-4 flex gap-1 rounded-lg bg-stone-100 p-1 text-sm">
+                  <button
+                    onClick={() => setTab("record")}
+                    className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
+                      tab === "record"
+                        ? "bg-white text-stone-900 shadow-sm"
+                        : "text-stone-500 hover:text-stone-700"
+                    }`}
+                  >
+                    🎥 Record
+                  </button>
+                  <button
+                    onClick={() => setTab("library")}
+                    className={`flex-1 rounded-md px-3 py-1.5 font-medium transition ${
+                      tab === "library"
+                        ? "bg-white text-stone-900 shadow-sm"
+                        : "text-stone-500 hover:text-stone-700"
+                    }`}
+                  >
+                    📚 Library
+                  </button>
+                </div>
+                {tab === "record" ? (
+                  <Recorder onClipReady={(clip) => onRecordClip(enquiry.id, clip)} />
+                ) : (
+                  <ClipLibrary
+                    savedClips={savedClips}
+                    onAttach={(saved) => onAttachSaved(enquiry.id, saved)}
+                  />
+                )}
+              </div>
 
               <button
                 disabled={clips.length === 0}

@@ -65,4 +65,12 @@
       customerReply: null,
     },
   ];
+
+  // Reusable canned answers. Like recorded clips, these are simulated and
+  // in-memory only (no hosting/persistence) — a refresh resets the library.
+  VR.INITIAL_SAVED_CLIPS = [
+    { id: "lib-fabric", title: "Fabric care & cleaning", durationSec: 48, simulated: true, url: null },
+    { id: "lib-dims", title: "Measuring & dimensions", durationSec: 36, simulated: true, url: null },
+    { id: "lib-lead", title: "Lead times & delivery", durationSec: 27, simulated: true, url: null },
+  ];
 })();

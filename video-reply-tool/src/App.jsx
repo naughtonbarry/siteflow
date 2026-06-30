@@ -4,7 +4,7 @@
  * time this file runs, so it can pull them off the namespace and then mount. */
 (function () {
   const { useState } = React;
-  const { Inbox, AnswerPanel, CustomerView, BRAND, INITIAL_ENQUIRIES } = VR;
+  const { Inbox, AnswerPanel, CustomerView, BRAND, INITIAL_ENQUIRIES, INITIAL_SAVED_CLIPS } = VR;
 
   let _uid = 0;
   const uid = (p) => `${p}-${Date.now().toString(36)}-${_uid++}`;
@@ -14,6 +14,7 @@
     const [selectedId, setSelectedId] = useState(INITIAL_ENQUIRIES[0].id);
     const [view, setView] = useState("retailer"); // retailer | customer
     const [customerId, setCustomerId] = useState(null);
+    const [savedClips, setSavedClips] = useState(INITIAL_SAVED_CLIPS);
 
     const selected = enquiries.find((e) => e.id === selectedId) || null;
 
@@ -37,6 +38,40 @@
 
     const handleRemoveClip = (id, clipId) =>
       setClips(id, (cs) => cs.filter((c) => c.id !== clipId));
+
+    // Attach a library clip to an enquiry as a fresh clip referencing it.
+    const handleAttachSaved = (id, saved) =>
+      setClips(id, (cs) => [
+        ...cs,
+        {
+          id: uid("clip"),
+          sourceClipId: saved.id,
+          title: saved.title,
+          url: saved.url || null,
+          simulated: saved.simulated,
+          durationSec: saved.durationSec,
+        },
+      ]);
+
+    // Save a (personal) attached clip into the reusable library, and mark the
+    // attached clip as now sourced from it so its "Save" affordance hides.
+    const handleSaveToLibrary = (enquiryId, clip, title) => {
+      const newId = uid("lib");
+      setSavedClips((list) => [
+        ...list,
+        {
+          id: newId,
+          title,
+          url: clip.url || null,
+          simulated: clip.simulated,
+          durationSec: clip.durationSec,
+          createdAt: Date.now(),
+        },
+      ]);
+      setClips(enquiryId, (cs) =>
+        cs.map((c) => (c.id === clip.id ? { ...c, sourceClipId: newId, title } : c))
+      );
+    };
 
     const handleSend = (id) => patchEnquiry(id, { sent: true });
 
@@ -87,8 +122,11 @@
               <AnswerPanel
                 key={selected.id}
                 enquiry={selected}
+                savedClips={savedClips}
                 onRecordClip={handleRecordClip}
+                onAttachSaved={handleAttachSaved}
                 onRemoveClip={handleRemoveClip}
+                onSaveToLibrary={handleSaveToLibrary}
                 onSend={handleSend}
                 onPreviewCustomer={handlePreviewCustomer}
               />
