@@ -10,7 +10,9 @@ A single-file project-workflow web app for construction / fit-out / relocation p
 
 - **Live URL:** https://naughtonbarry.github.io/siteflow/ (GitHub Pages, auto-deploys on push to `main`)
 - **Local:** Python HTTP server on port 3456 via `.claude/launch.json` → open `http://localhost:3456/` (NOT `/siteflow.html`). Start with `preview_start("siteflow")`.
-- **Auto-push:** a `PostToolUse` hook in `.claude/settings.json` runs `git add index.html && git commit && git push` after every Edit/Write to `index.html`. So changes go live automatically — no manual git needed for the app file.
+- **Auto-push:** a `PostToolUse` hook in `.claude/settings.json` runs `git add index.html && git commit && git push` after every Edit/Write to `index.html`. So changes go live automatically — no manual git needed for the app file. **The hook only commits `index.html`** — any OTHER new file (icons, manifest, etc.) must be `git add`/committed manually.
+- **No Jekyll:** a `.nojekyll` file makes Pages serve everything as-is. The repo has a Jekyll Actions workflow AND the default Pages build; they competed and a deploy adding new static assets failed until `.nojekyll` was added. Keep `.nojekyll`. If new static files 404, check the Pages build in the Actions tab.
+- **Installable PWA:** `manifest.webmanifest` + `<link rel="apple-touch-icon">`/`apple-mobile-web-app-*` meta in `<head>` + icon files (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, a white house on indigo `#4f46e5`). Lets users "Add to Home Screen" and get an app icon. Regenerate icons by drawing a 512 PNG (no Pillow/ImageMagick on this machine — use a stdlib zlib PNG writer) then `sips -z` to derive 192/180.
 
 ## Tech & structure
 
