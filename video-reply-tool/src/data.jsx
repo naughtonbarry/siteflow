@@ -30,7 +30,7 @@
         "Is the Connemara sofa available in the dark green linen, and how long is delivery to Cork?",
       receivedAt: minsAgo(8),
       status: "new", // new | answered
-      clip: null, // { url, durationSec, recordedAt }
+      clips: [], // [{ id, title?, sourceClipId?, url|null, simulated?, durationSec }]
       sent: false,
       customerReply: null,
     },
@@ -45,7 +45,7 @@
         "What are the exact dimensions of the extending oak table, and does it seat 8 when extended?",
       receivedAt: minsAgo(41),
       status: "new",
-      clip: null,
+      clips: [],
       sent: false,
       customerReply: null,
     },
@@ -60,7 +60,7 @@
         "How do I clean the velvet armchair if my kids spill on it? Worried about stains.",
       receivedAt: minsAgo(95),
       status: "new",
-      clip: null,
+      clips: [],
       sent: false,
       customerReply: null,
     },

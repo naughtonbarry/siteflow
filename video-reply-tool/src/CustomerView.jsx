@@ -6,6 +6,7 @@
   function CustomerView({ enquiry, onReply, onBack }) {
     const [draft, setDraft] = useState("");
     const [sent, setSent] = useState(Boolean(enquiry.customerReply));
+    const clips = enquiry.clips || [];
 
     return (
       <div className="min-h-screen bg-stone-100">
@@ -31,12 +32,21 @@
 
           <div className="rounded-b-2xl bg-white p-5 shadow-sm">
             <p className="mb-3 text-sm text-stone-600">
-              Hi {enquiry.customer.split(" ")[0]} — here's a personal video answer
+              Hi {enquiry.customer.split(" ")[0]} — here{clips.length > 1 ? " are personal video answers" : "'s a personal video answer"}{" "}
               about the <span className="font-medium">{enquiry.product}</span>:
             </p>
 
-            {enquiry.clip ? (
-              <ClipPlayer clip={enquiry.clip} rounded="rounded-xl" />
+            {clips.length ? (
+              <div className="space-y-3">
+                {clips.map((c) => (
+                  <div key={c.id}>
+                    {c.title && (
+                      <p className="mb-1 text-xs font-medium text-stone-500">{c.title}</p>
+                    )}
+                    <ClipPlayer clip={c} rounded="rounded-xl" />
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex aspect-video items-center justify-center rounded-xl bg-stone-100 text-stone-400">
                 No clip attached

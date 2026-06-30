@@ -6,6 +6,9 @@
   const { useState } = React;
   const { Inbox, AnswerPanel, CustomerView, BRAND, INITIAL_ENQUIRIES } = VR;
 
+  let _uid = 0;
+  const uid = (p) => `${p}-${Date.now().toString(36)}-${_uid++}`;
+
   function App() {
     const [enquiries, setEnquiries] = useState(INITIAL_ENQUIRIES);
     const [selectedId, setSelectedId] = useState(INITIAL_ENQUIRIES[0].id);
@@ -19,8 +22,21 @@
         list.map((e) => (e.id === id ? { ...e, ...patch } : e))
       );
 
-    const handleClipReady = (id, clip) =>
-      patchEnquiry(id, { clip, status: "answered" });
+    // Mutate an enquiry's clip list and keep `status` in sync with it.
+    const setClips = (id, fn) =>
+      setEnquiries((list) =>
+        list.map((e) => {
+          if (e.id !== id) return e;
+          const clips = fn(e.clips);
+          return { ...e, clips, status: clips.length ? "answered" : "new" };
+        })
+      );
+
+    const handleRecordClip = (id, clip) =>
+      setClips(id, (cs) => [...cs, { id: uid("clip"), ...clip }]);
+
+    const handleRemoveClip = (id, clipId) =>
+      setClips(id, (cs) => cs.filter((c) => c.id !== clipId));
 
     const handleSend = (id) => patchEnquiry(id, { sent: true });
 
@@ -71,7 +87,8 @@
               <AnswerPanel
                 key={selected.id}
                 enquiry={selected}
-                onClipReady={handleClipReady}
+                onRecordClip={handleRecordClip}
+                onRemoveClip={handleRemoveClip}
                 onSend={handleSend}
                 onPreviewCustomer={handlePreviewCustomer}
               />
