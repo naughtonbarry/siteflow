@@ -25,11 +25,21 @@ python3 -m http.server 5180
 > to Vite (`npm run dev`) and drop the Babel `<script>`.
 
 ## File layout (current)
-- `index.html` — CDN loader (React, ReactDOM, Babel, Tailwind) + `#root`.
-- `src/App.jsx` — the **entire** demo in one file: mock data, helpers, and all
-  components (Inbox, EnquiryCard, AnswerPanel, Recorder, ClipPlayer,
-  CustomerView, App). Written as one file on purpose so the planned refactor
-  has clear seams.
+- `index.html` — CDN loader. Sets up `window.VR = {}`, then fetches each
+  `src/*.jsx` file, compiles it with Babel's **classic** JSX runtime, and
+  appends it as a `<script>` **in dependency order**.
+- `src/*.jsx` — one module per file. Each is an IIFE that reads its
+  dependencies off the global `VR` namespace and writes its export(s) back
+  (e.g. `VR.Inbox = Inbox`). Load order (set in `index.html`):
+  `data → format → ui → ClipPlayer → Recorder → AnswerPanel → EnquiryCard
+  → Inbox → CustomerView → App`. `App.jsx` is last and mounts to `#root`.
+
+### Why the `VR` namespace and not ES modules
+No bundler here, and plain (non-module) `<script>`s share one global lexical
+scope — so separate files **cannot** each do `const {useState} = React`
+(that collides). Wrapping each file in an IIFE isolates its locals, and the
+`VR` object is the explicit import/export channel. True `import`/`export`
+only arrive if the project migrates to Vite (see the toolchain note above).
 
 ## Demo-vs-product gap (be honest about this in the UI)
 | Piece | Status |
@@ -44,13 +54,20 @@ Every faked piece is labeled in the UI with a dashed "⚠️" `DemoNote`. Do not
 a faked piece look real.
 
 ## Roadmap (in priority order)
-1. **Refactor** the single-file `App.jsx` into per-component files. No behaviour
-   change. (Next step.)
+1. ~~**Refactor** the single-file `App.jsx` into per-component files.~~ ✅ Done —
+   split into `src/*.jsx` IIFE modules over the `VR` namespace, no behaviour
+   change.
 2. **Saved-clips library** — record canned answers to common questions (fabric
    care, dimensions, lead times) once and reuse them, mixing canned + personal
-   clips per enquiry. **Highest-value next feature.**
+   clips per enquiry. **Highest-value next feature → this is now next.**
 3. **Real SMS/WhatsApp delivery** — the first true product priority. Needs a
    backend + a messaging provider. Do **not** start unprompted; ask first.
+
+## Known gaps / flagged bugs
+- **Object-URL leak** (`Recorder`): recorded-clip object URLs are never
+  `revokeObjectURL`'d. Not fixed because the URL is consumed by `ClipPlayer`/
+  `CustomerView` for the clip's lifetime — revoking needs clip-lifecycle
+  ownership at the `App` level, not inside `Recorder`.
 
 ## Ground rules
 - Keep the demo runnable at every step.
