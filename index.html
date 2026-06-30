@@ -708,6 +708,190 @@
         </div>
       </div>
 
+      <!-- Training Records -->
+      <div x-show="currentTab === 'training'">
+
+        <!-- Sub-tabs -->
+        <div class="flex gap-1 mb-6 border-b border-slate-200">
+          <template x-for="t in [{id:'dashboard',label:'Overview'},{id:'staff',label:'Staff'},{id:'records',label:'Records'}]" :key="t.id">
+            <button @click="trTab=t.id"
+              :class="trTab===t.id?'border-b-2 border-indigo-600 text-indigo-700 font-semibold':'text-slate-500 hover:text-slate-700'"
+              class="px-4 py-2.5 text-sm transition-colors -mb-px" x-text="t.label"></button>
+          </template>
+        </div>
+
+        <!-- Overview sub-tab -->
+        <div x-show="trTab==='dashboard'">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <template x-for="c in trSummaryCards()" :key="c.label">
+              <div :class="c.bg" class="rounded-xl p-4 shadow-sm">
+                <p class="text-xs font-medium mb-1" :class="c.muted" x-text="c.label"></p>
+                <p class="text-3xl font-bold" :class="c.text" x-text="c.count"></p>
+              </div>
+            </template>
+          </div>
+          <template x-if="trRecords.filter(r=>trGetStatus(r)==='Expired').length>0">
+            <div class="mb-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 flex items-center gap-2">
+              <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+              <span x-text="trRecords.filter(r=>trGetStatus(r)==='Expired').length+' record(s) have expired and require renewal.'"></span>
+            </div>
+          </template>
+          <template x-if="trRecords.filter(r=>trGetStatus(r)==='Expiring Soon').length>0">
+            <div class="mb-5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-center gap-2">
+              <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+              <span x-text="trRecords.filter(r=>trGetStatus(r)==='Expiring Soon').length+' record(s) expiring within 60 days.'"></span>
+            </div>
+          </template>
+          <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 class="font-semibold text-slate-800 text-sm">All Training Records</h3>
+              <select x-model="trDashFilter" class="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                <option value="">All statuses</option>
+                <option>Expired</option><option>Expiring Soon</option><option>Valid</option><option>N/A</option>
+              </select>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm min-w-[560px]">
+                <thead class="bg-slate-50 text-slate-400 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th class="px-5 py-3 text-left">Staff Member</th>
+                    <th class="px-5 py-3 text-left">Course</th>
+                    <th class="px-5 py-3 text-left">Completed</th>
+                    <th class="px-5 py-3 text-left">Expires</th>
+                    <th class="px-5 py-3 text-left">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-if="trFilteredDash().length===0">
+                    <tr><td colspan="5" class="px-5 py-10 text-center text-slate-400 text-sm">No records.</td></tr>
+                  </template>
+                  <template x-for="rec in trFilteredDash()" :key="rec.id">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="px-5 py-3 font-medium text-slate-800" x-text="rec.staffName"></td>
+                      <td class="px-5 py-3 text-slate-600" x-text="rec.course"></td>
+                      <td class="px-5 py-3 text-slate-400" x-text="trFmtDate(rec.dateCompleted)"></td>
+                      <td class="px-5 py-3 text-slate-400" x-text="trFmtDate(rec.expiryDate)"></td>
+                      <td class="px-5 py-3"><span :class="trStatusClass(rec)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" x-text="trGetStatus(rec)"></span></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Staff sub-tab -->
+        <div x-show="trTab==='staff'">
+          <div class="flex items-center justify-between mb-5">
+            <p class="text-sm text-slate-500"><span class="font-semibold text-slate-800" x-text="trStaff.length"></span> staff members</p>
+            <button @click="openTrStaffModal()" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Staff Member
+            </button>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm min-w-[560px]">
+                <thead class="bg-slate-50 text-slate-400 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th class="px-5 py-3 text-left">Name</th>
+                    <th class="px-5 py-3 text-left">Role</th>
+                    <th class="px-5 py-3 text-left">Department</th>
+                    <th class="px-5 py-3 text-left">Start Date</th>
+                    <th class="px-5 py-3 text-left">Records</th>
+                    <th class="px-5 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-if="trStaff.length===0">
+                    <tr><td colspan="6" class="px-5 py-10 text-center text-slate-400">No staff added yet.</td></tr>
+                  </template>
+                  <template x-for="s in trStaff" :key="s.id">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="px-5 py-3">
+                        <div class="flex items-center gap-2.5">
+                          <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0" x-text="initials(s.name)"></div>
+                          <span class="font-medium text-slate-800" x-text="s.name"></span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-3 text-slate-600" x-text="s.role||'—'"></td>
+                      <td class="px-5 py-3 text-slate-500" x-text="s.department||'—'"></td>
+                      <td class="px-5 py-3 text-slate-400" x-text="s.startDate?trFmtDate(s.startDate):'—'"></td>
+                      <td class="px-5 py-3"><span class="text-indigo-600 font-semibold" x-text="trRecordsForStaff(s.id).length"></span></td>
+                      <td class="px-5 py-3 text-right flex items-center justify-end gap-3">
+                        <button @click="openTrStaffModal(s)" class="text-slate-300 hover:text-indigo-500 transition-colors">
+                          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button @click="deleteTrStaff(s.id)" class="text-slate-300 hover:text-rose-500 transition-colors">
+                          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Records sub-tab -->
+        <div x-show="trTab==='records'">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+            <p class="text-sm text-slate-500"><span class="font-semibold text-slate-800" x-text="trRecords.length"></span> records</p>
+            <div class="flex gap-2 w-full sm:w-auto">
+              <input x-model="trRecordSearch" type="text" placeholder="Search staff or course…"
+                class="flex-1 sm:w-56 text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+              <button @click="openTrRecordModal()" :disabled="trStaff.length===0"
+                class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Record
+              </button>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm min-w-[640px]">
+                <thead class="bg-slate-50 text-slate-400 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th class="px-5 py-3 text-left">Staff Member</th>
+                    <th class="px-5 py-3 text-left">Course</th>
+                    <th class="px-5 py-3 text-left">Provider</th>
+                    <th class="px-5 py-3 text-left">Completed</th>
+                    <th class="px-5 py-3 text-left">Expires</th>
+                    <th class="px-5 py-3 text-left">Status</th>
+                    <th class="px-5 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-if="trFilteredRecords().length===0">
+                    <tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">No records found.</td></tr>
+                  </template>
+                  <template x-for="rec in trFilteredRecords()" :key="rec.id">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="px-5 py-3 font-medium text-slate-800" x-text="rec.staffName"></td>
+                      <td class="px-5 py-3 text-slate-700" x-text="rec.course"></td>
+                      <td class="px-5 py-3 text-slate-400" x-text="rec.provider||'—'"></td>
+                      <td class="px-5 py-3 text-slate-400" x-text="trFmtDate(rec.dateCompleted)"></td>
+                      <td class="px-5 py-3 text-slate-400" x-text="trFmtDate(rec.expiryDate)"></td>
+                      <td class="px-5 py-3"><span :class="trStatusClass(rec)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" x-text="trGetStatus(rec)"></span></td>
+                      <td class="px-5 py-3 text-right flex items-center justify-end gap-3">
+                        <button @click="openTrRecordModal(rec)" class="text-slate-300 hover:text-indigo-500 transition-colors">
+                          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button @click="deleteTrRecord(rec.id)" class="text-slate-300 hover:text-rose-500 transition-colors">
+                          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </main>
   </div>
 </div>
