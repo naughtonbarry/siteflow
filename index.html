@@ -751,27 +751,25 @@
               </select>
             </div>
             <div class="overflow-x-auto">
-              <table class="w-full text-sm min-w-[680px]">
+              <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-slate-400 text-xs uppercase tracking-wide">
                   <tr>
-                    <th class="px-5 py-3 text-left">Staff Member</th>
-                    <th class="px-5 py-3 text-left">Course</th>
-                    <th class="px-5 py-3 text-left">Completed</th>
-                    <th class="px-5 py-3 text-left">Expires</th>
-                    <th class="px-5 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-left">Staff Member</th>
+                    <th class="px-4 py-3 text-left">Course</th>
+                    <th class="px-4 py-3 text-left hidden md:table-cell">Expires</th>
+                    <th class="px-4 py-3 text-left">Status</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                   <template x-if="trFilteredDash().length===0">
-                    <tr><td colspan="5" class="px-5 py-10 text-center text-slate-400 text-sm">No records.</td></tr>
+                    <tr><td colspan="4" class="px-4 py-10 text-center text-slate-400 text-sm">No records.</td></tr>
                   </template>
                   <template x-for="rec in trFilteredDash()" :key="rec.id">
                     <tr class="hover:bg-slate-50 transition-colors">
-                      <td class="px-5 py-3 font-medium text-slate-800" x-text="rec.staffName"></td>
-                      <td class="px-5 py-3 text-slate-600" x-text="rec.course"></td>
-                      <td class="px-5 py-3 text-slate-400" x-text="trFmtDate(rec.dateCompleted)"></td>
-                      <td class="px-5 py-3 text-slate-400" x-text="trFmtDate(rec.expiryDate)"></td>
-                      <td class="px-5 py-3"><span :class="trStatusClass(rec)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" x-text="trGetStatus(rec)"></span></td>
+                      <td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap" x-text="rec.staffName"></td>
+                      <td class="px-4 py-3 text-slate-600" x-text="rec.course"></td>
+                      <td class="px-4 py-3 text-slate-400 whitespace-nowrap hidden md:table-cell" x-text="trFmtDate(rec.expiryDate)"></td>
+                      <td class="px-4 py-3"><span :class="trStatusClass(rec)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap" x-text="trGetStatus(rec)"></span></td>
                     </tr>
                   </template>
                 </tbody>
