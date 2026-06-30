@@ -9,6 +9,7 @@
     const recorderRef = useRef(null);
     const chunksRef = useRef([]);
     const timerRef = useRef(null);
+    const startTimeRef = useRef(null);
 
     const [state, setState] = useState("idle"); // idle | live | recording | error
     const [seconds, setSeconds] = useState(0);
@@ -42,19 +43,33 @@
       }
     }
 
+    // Not every browser can record webm (Safari records mp4), so pick the
+    // first type the platform actually supports rather than hardcoding webm.
+    function pickMimeType() {
+      const candidates = ["video/webm;codecs=vp9", "video/webm", "video/mp4"];
+      if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) return "";
+      return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+    }
+
     function startRecording() {
       if (!streamRef.current) return;
       chunksRef.current = [];
-      const rec = new MediaRecorder(streamRef.current);
+      const mimeType = pickMimeType();
+      const rec = new MediaRecorder(streamRef.current, mimeType ? { mimeType } : undefined);
       rec.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || mimeType || "video/webm" });
         const url = URL.createObjectURL(blob); // FAKED hosting: in-memory only
-        onClipReady({ url, durationSec: seconds, recordedAt: Date.now() });
+        // Derive duration from elapsed wall-clock time. (Reading the `seconds`
+        // state here would capture its value from when this handler was created
+        // — i.e. 0 — not the final count.)
+        const durationSec = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+        onClipReady({ url, durationSec, recordedAt: Date.now() });
       };
       recorderRef.current = rec;
+      startTimeRef.current = Date.now();
       rec.start();
       setSeconds(0);
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
