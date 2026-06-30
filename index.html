@@ -1194,6 +1194,7 @@ function siteflow(){
     async init(){
       await _storeInit(SEED);
       this.loading=false;
+      this.trInitData();
       let saved=null;try{saved=localStorage.getItem('sf_currentUser')}catch(e){}
       if(saved){try{this.user=JSON.parse(saved);const f=this.getData('users').find(u=>u.id===this.user.id);if(f)this.user=f;const ps=this.accessibleProjects;if(ps.length)this.currentProjectId=ps[0].id}catch(e){try{localStorage.removeItem('sf_currentUser')}catch(e2){}}}
     },
