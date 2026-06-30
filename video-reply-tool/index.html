@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VidReply — video answers for furniture enquiries</title>
+
+  <!-- Tailwind (CDN, no build step) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] } } }
+    };
+  </script>
+
+  <!-- React + ReactDOM (UMD globals: React, ReactDOM) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel: compiles JSX in the browser. This is why App.jsx must be SERVED
+       over HTTP (python3 -m http.server), not opened as a file:// URL. -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui; }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-900 antialiased">
+  <div id="root"></div>
+
+  <!-- No-bundler module loader.
+       Each src/*.jsx file is an IIFE that reads/writes the global `VR`
+       namespace. We fetch + compile each with the CLASSIC JSX runtime (the
+       default `text/babel` react preset uses the *automatic* runtime, which
+       injects `import {jsx} from "react/jsx-runtime"` — illegal in a plain
+       non-module script with UMD React globals). Files are appended as
+       separate <script> tags IN ORDER, so each module's dependencies are
+       already on `VR` by the time it runs. App.jsx is last and mounts. -->
+  <script>window.VR = {};</script>
+  <script>
+    (async () => {
+      const files = [
+        "src/data.jsx",
+        "src/format.jsx",
+        "src/ui.jsx",
+        "src/ClipPlayer.jsx",
+        "src/Recorder.jsx",
+        "src/AnswerPanel.jsx",
+        "src/EnquiryCard.jsx",
+        "src/Inbox.jsx",
+        "src/CustomerView.jsx",
+        "src/App.jsx",
+      ];
+      for (const f of files) {
+        const src = await (await fetch(f)).text();
+        const { code } = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] });
+        const tag = document.createElement("script");
+        tag.textContent = code;
+        document.body.appendChild(tag); // runs synchronously, preserving order
+      }
+    })();
+  </script>
+</body>
+</html>
